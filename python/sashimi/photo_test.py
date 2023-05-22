@@ -1,3 +1,5 @@
+import os
+
 from sashimi.controller import Controller
 from pathlib import Path
 
@@ -17,12 +19,13 @@ def is_valid_path(_path):
         return False
     else:
         print("Directory not found. It will be created.")
+        os.makedirs(_path)
         return True
 
 
 def is_valid_range(user_range):
     mini = 1
-    maxi = 10000
+    maxi = 5000
 
     try:
         user_range = [float(val) for val in user_range]
@@ -96,7 +99,7 @@ if __name__ == "__main__":
     interval = ask_for_interval()
     step_nbr = ask_for_step_nbr(interval)
 
-    step_size = (interval[1] - interval[0]) // step_nbr
+    step_size = (interval[1] - interval[0]) // (step_nbr - 1)
     exposition_values = [interval[0] + i * step_size for i in range(step_nbr)]
     print("Input collection finished, the scanning program will start.")
 

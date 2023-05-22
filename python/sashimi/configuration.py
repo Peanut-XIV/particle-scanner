@@ -11,6 +11,7 @@ class Configuration(object):
         self.exposure_time = 2000
         self.scans = [{'FL': [10000, 50000, 2000],
                        'BR':[11000, 51000, 2000],
+                       'BL_Z':2000,
                        'Z_corrections':[0, 0]}]
         self.top_down = False
 
@@ -20,14 +21,17 @@ class Configuration(object):
         x, y, z = 0, 1, 2
         
         if blz is None:
-            blz = (fl[0] + br[0])//2
+            blz = (fl[z] + br[z])//2
         
         assert (br[x] != fl[x])
         assert (br[y] != fl[y])
         
         dz_dx = (blz - fl[z]) / (br[x] - fl[x])
         dz_dy = (br[z] - blz) / (br[y] - fl[y])
+
+        self.scans[index]['BL_Z'] = blz
         self.scans[index]['Z_corrections'] = [dz_dx, dz_dy]
+        self.save()
 
     def save(self, save_name="config"):
         config_file = os.path.join(os.path.expanduser("~"), ".sashimi", save_name + ".json")

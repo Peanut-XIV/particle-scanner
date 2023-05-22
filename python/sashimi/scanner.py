@@ -3,8 +3,7 @@ import time
 from pathlib import Path
 import skimage.io as skio
 import numpy as np
-# from sashimi.helicon_stack import stack_from_to, stack_for_multiple_exp
-
+from sashimi.helicon_stack import stack_from_to, stack_for_multiple_exp
 
 # TODO: fix the bug crashing the program if a multi scan of 1 scan ends
 # TODO: add the "take stack from min_height of the scan area" option (Failsafe in case of very annoying code)
@@ -38,7 +37,6 @@ class Scanner(object):
         self.scan_dir = self.save_dir
         
         self.scans = self.config.scans
-        self.selected_scan_number = self.controller.selected_scan_number
         self.selected_scan = self.controller.selected_scan
         
         self.stack_count = None
@@ -73,8 +71,8 @@ class Scanner(object):
         
         # Create directory to store images
         os.makedirs(self.scan_dir, exist_ok=True)
-        
-        selected_scan = self.selected_scan()
+
+        selected_scan = self.controller.selected_scan()
         
         # Move to the starting position
         self.stage.goto(selected_scan['FL'])
@@ -94,7 +92,7 @@ class Scanner(object):
                 
                 self.current_stack += 1
                 dx, dy = self.X_STEP * xi, self.Y_STEP * yi
-                
+                self.stage.goto_z(selected_scan['FL'][2])
                 self.stage.goto_x(selected_scan['FL'][0] + dx)
                 self.stage.goto_y(selected_scan['FL'][1] + dy)
                 self.stage.wait_until_position(1000)
@@ -105,7 +103,7 @@ class Scanner(object):
 
     def multi_scan(self):
         self.is_multi_scanning = True
-
+        self.controller.selected_scan_number = 1
         os.makedirs(self.save_dir, exist_ok=True)
         # os.makedirs(self.fs_folder, exist_ok=True)
         # for folder in self.fs_exp_folders:
@@ -116,21 +114,23 @@ class Scanner(object):
             if not self.is_multi_scanning:
                 return
 
-            self.selected_scan_number = n + 1
+            self.controller.selected_scan_number = n + 1
+            self.stage.goto(self.selected_scan()['FL'])
+            self.wait_ms_check_input(5000)
 
             if len(self.scans) == 1:
                 self.scan_dir = self.save_dir
-                # scan_fs_dir = self.fs_folder
+                scan_fs_dir = self.fs_folder
             else:
                 self.scan_dir = Path(self.save_dir).joinpath(scan_name)
-                # scan_fs_dir = self.fs_folder.joinpath(scan_name)
+                scan_fs_dir = self.fs_folder.joinpath(scan_name)
 
             self.scan()
-            # if self.photo_test is None:
-            #     stack_from_to(self.scan_dir, scan_fs_dir)
-            # else:
-            #     print(self.scan_dir, self.fs_folder, self.photo_test)
-            #     stack_for_multiple_exp(self.scan_dir, self.fs_folder, self.photo_test)
+            if self.photo_test is None:
+                stack_from_to(self.scan_dir, scan_fs_dir)
+            else:
+                print(self.scan_dir, self.fs_folder, self.photo_test)
+                stack_for_multiple_exp(self.scan_dir, self.fs_folder, self.photo_test)
 
         self.is_multi_scanning = False
 
@@ -156,13 +156,14 @@ class Scanner(object):
                 os.makedirs(stack_folder.joinpath(f"E{exp}"), exist_ok=True)
                 
         dz_dx, dz_dy = self.selected_scan()['Z_corrections']
-        
+
+        z_orig = self.stage.z
+
         z_correction = int(dz_dx * dx + dz_dy * dy)
         self.stage.move_z(z_correction)
         self.wait_ms_check_input(100)
         
         # Take the stack
-        z_orig = self.stage.z
         print(z_orig)
 
         if self.config.top_down:  # Reposition the camera with downward travel to reduce the tilting of the camera
@@ -187,8 +188,10 @@ class Scanner(object):
                     return
 
                 self.camera.set_exposure(exp)
-                self.wait_ms_check_input(100)
-                time.sleep(0.05)
+                chrono = -time.perf_counter()
+                self.wait_ms_check_input(300)
+                chrono += time.perf_counter()
+                print(chrono)
                 img = self.camera.latest_image()
                 images.append(img)
                 self.show_image(img)
@@ -204,12 +207,12 @@ class Scanner(object):
 
                 skio.imsave(str(image_save_path), img[..., ::-1], check_contrast=False, quality=90)
 
+
             # Move down instead of up if top_down is True
             if self.config.top_down:
                 self.stage.move_z(-self.config.stack_step)
             else:
                 self.stage.move_z(self.config.stack_step)
-            self.wait_ms_check_input(100)
 
         # Return to base Z coordinate
         img = self.camera.latest_image()

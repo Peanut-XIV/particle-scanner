@@ -6,7 +6,6 @@ from sashimi.scanner import Scanner
 from sashimi.stage import Stage
 from sashimi.configuration import Configuration
 
-
 # TODO: fix offset in UI
 # TODO: Add save/load config files
 
@@ -20,7 +19,6 @@ class Controller(object):
         self.interrupt_flag = False
         self.selected_scan_number = 1
         self.scans = self.config.scans
-        self.selected_scan = lambda: self.scans[self.selected_scan_number - 1]
         self.save_dir = save_dir
 
         self.stage = Stage(self, com_port)
@@ -72,8 +70,8 @@ class Controller(object):
         self.PREV_SCAN = ord('z')
         self.NEXT_SCAN = ord('x')
         self.ADD_ZONE = ord('v')
-        self.DEL_ZONE = ord('b')
-        self.DEL_ALL_ZONES = ord('n')
+        self.DEL_ZONE = ord('B')
+        self.DEL_ALL_ZONES = ord('N')
 
         self.TAKE_STACK1 = ord('\n')
         self.TAKE_STACK2 = ord('\r')
@@ -104,6 +102,9 @@ class Controller(object):
             self.X_DOWN = ord('E')
 
             self.PREV_SCAN = ord('w')
+
+    def selected_scan(self):
+        return self.scans[self.selected_scan_number - 1]
 
     def permanent_commands(self, key):
         # Image display modes
@@ -259,10 +260,13 @@ class Controller(object):
             if self.selected_scan_number < len(self.scans):
                 self.selected_scan_number += 1
         elif key == self.ADD_ZONE:  # add a new zone
-            self.scans.append(self.selected_scan())
+            self.scans.append({'FL': [10000, 50000, 2000],
+                               'BR':[11000, 51000, 2000],
+                               'BL_Z':2000,
+                               'Z_corrections':[0, 0]})
         elif key == self.DEL_ZONE:  # delete currently selected zone
             if len(self.scans) > 1:
-                if self.selected_scan_number == len(self.scans) + 1:
+                if self.selected_scan_number == len(self.scans + 1):
                     self.scans.pop(self.selected_scan_number - 1)
                     self.selected_scan_number -= 1
                 else:
@@ -270,7 +274,10 @@ class Controller(object):
 
         elif key == self.DEL_ALL_ZONES:  # delete all scans
             self.selected_scan_number = 1
-            self.scans = [self.scans[0]]
+            self.scans = [{'FL': [10000, 50000, 2000],
+                           'BR':[11000, 51000, 2000],
+                           'BL_Z':2000,
+                           'Z_corrections':[0, 0]}]
 
         elif key == self.SCAN_FL:
             self.selected_scan()['FL'] = [self.stage.x, self.stage.y, self.stage.z]
@@ -342,21 +349,17 @@ class Controller(object):
         # Add some black space to left of image to draw current status
         LEFT_EDGE_SIZE = 300
         im = np.pad(im, [[0, 0], [LEFT_EDGE_SIZE, 0], [0, 0]])
-        
+
+        sel_scan_num = self.selected_scan_number
+        sel_scan = self.selected_scan()
         blz = self.selected_scan()['BL_Z']
-        if blz == -1:
-            if self.lang == 'fr':
-                blz = 'non defini'
-            else:
-                blz = 'undefined'
         
         text_status = []
         text_button = []
         text_help = []
 
         # Define the UI text to be displayed
-        sel_scan_num = self.selected_scan_number
-        sel_scan = self.selected_scan()
+
         if self.scanner.is_multi_scanning:
             if self.lang == "en":
                 scan_command = "Stop scanning"
@@ -376,7 +379,7 @@ class Controller(object):
                     f"SCAN: {sel_scan_num}/{len(self.scans)}",
                     f"FL: {sel_scan['FL']}",
                     f"BR: {sel_scan['BR']}",
-                    f"BL: Z={blz}"
+                    f"BL: Z={blz}",
                     "- - - - - - - - - - - -",
                     "COMMANDS",
                     f"{scan_command}",
@@ -433,7 +436,7 @@ class Controller(object):
                     f"SCAN: {sel_scan_num}/{len(self.scans)}",
                     f"AvGch: {sel_scan['FL']}",
                     f"ArDt: {sel_scan['BR']}",
-                    f"ArGch: Z={blz}"
+                    f"ArGch: Z={blz}",
                     "- - - - - - - - - - - -",
                     "DEMANDES",
                     f"{scan_command}",
@@ -524,8 +527,8 @@ class Controller(object):
                     "",
                     "p",
                     "v",
-                    "b",
-                    "n",
+                    "B",
+                    "N",
                     "",
                     "",
                     "esc"
@@ -548,7 +551,7 @@ class Controller(object):
                     f"SCAN: {sel_scan_num}/{len(self.scans)}",
                     f"AvGch: {sel_scan['FL']}",
                     f"ArDt: {sel_scan['BR']}",
-                    f"ArGch: Z={blz}"
+                    f"ArGch: Z={blz}",
                     "- - - - - - - - - - - -",
                     "DEMANDES",
                     f"{scan_command}",
@@ -578,8 +581,8 @@ class Controller(object):
                     "",
                     "p",
                     "v",
-                    "b",
-                    "n",
+                    "B",
+                    "N",
                     "",
                     "",
                     "esc"
