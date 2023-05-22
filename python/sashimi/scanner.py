@@ -188,10 +188,7 @@ class Scanner(object):
                     return
 
                 self.camera.set_exposure(exp)
-                chrono = -time.perf_counter()
                 self.wait_ms_check_input(300)
-                chrono += time.perf_counter()
-                print(chrono)
                 img = self.camera.latest_image()
                 images.append(img)
                 self.show_image(img)
@@ -206,7 +203,6 @@ class Scanner(object):
                                                             f"Z{self.stage.z:06d}.jpg")
 
                 skio.imsave(str(image_save_path), img[..., ::-1], check_contrast=False, quality=90)
-
 
             # Move down instead of up if top_down is True
             if self.config.top_down:

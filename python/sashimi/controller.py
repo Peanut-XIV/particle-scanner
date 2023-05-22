@@ -9,6 +9,7 @@ from sashimi.configuration import Configuration
 # TODO: fix offset in UI
 # TODO: Add save/load config files
 
+
 class Controller(object):
     def __init__(self, save_dir, com_port, reposition_offset=1000, photo_test=False, lang="en"):
         self.config = Configuration.load()
