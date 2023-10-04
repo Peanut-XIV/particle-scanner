@@ -14,6 +14,7 @@ setup(
         'scipy',
         'pypylon',
         'opencv-python',
-        'pyserial'
+        'pyserial',
+        'pillow'
     ]
 )
