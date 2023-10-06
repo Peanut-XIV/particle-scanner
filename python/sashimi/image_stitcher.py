@@ -7,6 +7,7 @@ from skimage.measure import ransac
 from skimage.transform import warp, AffineTransform
 from skimage.feature import corner_peaks, corner_harris
 import cv2.imread as imread
+import cv2.imwrite as imwrite
 
 # In order to combine a set of neighboring images into a larger one, each image needs to be deformed a bit to fit
 # exactly with each other. Then, they are stitched together by doing an average where they overlap.
@@ -44,7 +45,7 @@ class ImageTransform:
 			self.corners = corners
 	
 	@property
-	def image(self):
+	def image(self) -> ndarray:
 		# Reduces RAM usage
 		# if path is not None, the image is loaded on demand instead of loaded from initiation until deletion
 		if self.path is None:
@@ -88,8 +89,8 @@ def make_image_list(grid: ndarray) -> [ImageTransform]:
 	return output
 
 
-def calculate_transforms(ref_list: [ImageTransform]) -> None:
-	for img in ref_list[1:]:
+def compute_transforms(_image_list: [ImageTransform]) -> None:
+	for img in _image_list[1:]:
 		if img.left is not None and img.top is not None:
 			ref = merge_references(img.left, img.top)
 		elif img.left is None:
@@ -104,7 +105,7 @@ def calculate_transforms(ref_list: [ImageTransform]) -> None:
 			residual_threshold=2,
 			max_trials=100
 		)
-		img.matrix = np.matmul(ref.matrix, np.asmatrix(estimated_transform.params))
+		img.matrix = np.matmul(ref.matrix, np.asmatrix(estimated_transform[0].params))
 	
 
 def merge_references(image1: ImageTransform, image2: ImageTransform) -> ImageTransform:
@@ -167,27 +168,36 @@ def match_locations(img0, img1, coords0, coords1, radius=5, sigma=3) -> ndarray:
 	return np.array(match_list)
 
 
-def compose_panorama(image_list: [ImageTransform]) -> ndarray:
+def compose_panorama(_image_list: [ImageTransform]) -> ndarray:
 	# compute the dimensions of the panorama
 	# for each image, get coords of corners after transform
 	corners = []
-	for img in image_list:
+	for img in _image_list:
 		image = img.image
 		y, x, _ = image.shape
 		del image
 		# TODO: getting image dimensions by reading the header of the file
 		#  would be faster than loading it in memory (don't know how though)
 		corners += repeat_transform(img.matrix, cartesian((0, x), (0, y)))
-
 	(x_min, y_min), (x_max, y_max) = min_max_ab(corners)
 	off_mat = np.identity(3)
 	off_mat[:2, 2] = -x_min, -y_min
 	dimensions = (y_max - y_min, x_max - x_min)
 	
 	# create an accumulator image
-	img0 = image_list[0]
+	img0 = _image_list[0]
 	panorama = warp(img0, inv(np.matmul(off_mat, img0.matrix)), output_shape=dimensions, cval=np.NaN)
-	for img in image_list[1:]:
+	for img in _image_list[1:]:
 		img_tf = warp(img, inv(np.matmul(off_mat, img.matrix)), output_shape=dimensions, cval=np.NaN)
 		np.nanmean(np.stack((img_tf, panorama)), out=panorama)
 	return panorama
+
+
+if __name__ == "__main__":
+	dir_path = input("image folder: ")
+	image_name = input("image name:")
+	image_grid = image_dir_2_grid(dir_path)
+	image_list = make_image_list(image_grid)
+	compute_transforms(image_list)
+	out_image = compose_panorama(image_list)
+	imwrite(image_name, out_image)
