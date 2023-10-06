@@ -1,12 +1,15 @@
 import cv2
 import serial
+import time
 
 
 class Stage(object):
-    def __init__(self, port):
+    def __init__(self, controller, port):
+        self.controller = controller
         self.port = port
         self.serial: serial.Serial = None
 
+        # Distances in micrometers
         self.x = 0
         self.y = 0
         self.z = 0
@@ -17,12 +20,14 @@ class Stage(object):
 
         self.x_limits = (0, 200000)
         self.y_limits = (0, 200000)
-        self.z_limits = (0, 10000)
+        self.z_limits = (0, 20000)
 
         self.buffer = []
 
     def start(self):
         self.serial = serial.Serial(self.port, 115200)
+        if not self.serial.isOpen():
+            self.serial.open()
 
     def stop(self):
         self.serial.close()
@@ -42,14 +47,16 @@ class Stage(object):
         self.goto_z(offset[2])
         self.wait_until_position(20000)
 
-    def move_x(self, distance):
-        self.goto_x(self.x + distance)
+    def move_x(self, distance_um):
+        self.goto_x(self.x + distance_um)
 
-    def move_y(self, distance):
-        self.goto_y(self.y + distance)
+    def move_y(self, distance_um):
+        self.goto_y(self.y + distance_um)
 
-    def move_z(self, distance):
-        self.goto_z(self.z + distance)
+    def move_z(self, distance_um):
+        sleep_time = abs(distance_um) / 1000
+        self.goto_z(self.z + distance_um)
+        time.sleep(sleep_time)
 
     def goto_x(self, position):
         self.x = position
@@ -57,7 +64,7 @@ class Stage(object):
             self.x = self.x_limits[0]
         if self.x > self.x_limits[1]:
             self.x = self.x_limits[1]
-        self.send_command(f"G1 X {self.x / 1000:3f} F3000")
+        self.send_command(f"G0 X {self.x / 1000:3f} F3000")
 
     def goto_y(self, position):
         self.y = position
@@ -65,7 +72,7 @@ class Stage(object):
             self.y = self.y_limits[0]
         if self.y > self.y_limits[1]:
             self.y = self.y_limits[1]
-        self.send_command(f"G1 Y {self.y / 1000:3f} F3000")
+        self.send_command(f"G0 Y {self.y / 1000:3f} F3000")
 
     def goto_z(self, position):
         self.z = position
@@ -73,7 +80,7 @@ class Stage(object):
             self.z = self.z_limits[0]
         if self.z > self.z_limits[1]:
             self.z = self.z_limits[1]
-        self.send_command(f"G1 Z {self.z / 1000:3f} F100")
+        self.send_command(f"G0 Z {self.z / 1000:3f} F100")
 
     def goto(self, position):
         self.goto_x(position[0])
@@ -82,27 +89,30 @@ class Stage(object):
 
     def poll(self):
         dummy = self.read()
-        self.send_command("M114")
-        cv2.waitKey(100)
+        self.send_command("M114 R")
+        self.controller.wait(100)
         responses = self.read()
         for response in responses:
             if response.startswith("X:"):
                 parts = response.split(' ')
-                subparts = parts[0].split(':')
-                self.reported_x = int(float(subparts[1])*1000)
-                subparts = parts[1].split(':')
-                self.reported_y = int(float(subparts[1]) * 1000)
-                subparts = parts[2].split(':')
-                self.reported_z = int(float(subparts[1]) * 1000)
+                sub_parts = parts[0].split(':')
+                self.reported_x = int(float(sub_parts[1]) * 1000)
+                sub_parts = parts[1].split(':')
+                self.reported_y = int(float(sub_parts[1]) * 1000)
+                sub_parts = parts[2].split(':')
+                self.reported_z = int(float(sub_parts[1]) * 1000)
 
     def wait_until_position(self, ms):
-        i = 0
-        while i < ms / 100:
-            self.poll()
-            if self.x == self.reported_x and self.y == self.reported_y and self.z == self.reported_z:
-                print(f"Position attained in {i*100}ms")
-                return
-            i += 1
+        # tells the printer to finish it's planned movements before executing any other g-code
+        self.send_command('M400')
+        self.send_command("M118 Ready")
+        for i in range(ms//self.controller.frame_duration_ms):
+            self.controller.wait()
+            messages = self.read()
+            for message in messages:
+                if message.startswith('Ready'):
+                    return
+        
         print(f"!!! ERROR: position not attained after {ms}ms ")
 
     def send_command(self, command):
