@@ -21,5 +21,6 @@ dependencies=[
         'PySide6==6.6.1',
         'marshmallow_dataclass==8.6.0',
         'tqdm',
-        'itk-montage'
     ]
+[project.optional-dependencies]
+stitching = ['itk-montage']
