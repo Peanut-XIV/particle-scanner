@@ -38,6 +38,8 @@ class Stage(object):
         self.buffer = []
 
     def start(self):
+        if self.port == "auto":
+            self.auto_detect_port()
         self.serial = serial.Serial(self.port, 115200)
         if not self.serial.isOpen():
             self.serial.open()
@@ -48,6 +50,35 @@ class Stage(object):
     @property
     def position(self):
         return [self.x, self.y, self.z]
+
+    def device_reads_gcode(self):
+        try:
+            self.serial = serial.Serial(self.port, 115200)
+            if not self.serial.isOpen():
+                self.serial.open()
+        except serial.SerialException:
+            return False
+        self.send_command("M118 Hello")
+        time.sleep(0.1)
+        answer = self.read()
+        for line in answer:
+            if "Hello" in line:
+                self.stop()
+                return True
+        self.stop()
+        return False
+
+    def auto_detect_port(self, regexp=None):
+        if regexp is not None:
+            available_ports = serial.tools.list_ports.grep(regexp)
+        else:
+            available_ports = serial.tools.list_ports.comports()
+        for port in available_ports:
+            # test device
+            self.port = port.device
+            if self.device_reads_gcode():
+                return 0
+        return 1
 
     def home(self, offset, busy=False):
         self.send_command("G28 R X Y Z")
