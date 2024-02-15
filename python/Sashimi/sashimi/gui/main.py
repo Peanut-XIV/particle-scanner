@@ -1,8 +1,11 @@
 import sys
 
 from PySide6.QtCore import QThread
-from PySide6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QLabel, QWidget, QHBoxLayout, \
-    QDoubleSpinBox, QSpinBox, QGridLayout, QLayout, QTextEdit
+from PySide6.QtWidgets import (
+        QApplication, QMainWindow, QPushButton, QVBoxLayout,
+        QLabel, QWidget, QHBoxLayout, QDoubleSpinBox,
+        QSpinBox, QGridLayout, QLayout, QTextEdit
+)
 from PySide6.QtGui import QImage, QPixmap
 import numpy as np
 

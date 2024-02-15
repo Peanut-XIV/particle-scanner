@@ -5,11 +5,17 @@ import cv2
 import serial
 import time
 
+
 @dataclass
 class StageConfiguration:
-    port: str = "COM8"
-    home_offset: List[int] = field(default_factory=lambda: [10000, 50000, 2000])
-    limits: List[List[int]] = field(default_factory=lambda: [[0, 200000], [0, 200000], [0, 20000]])
+    port: str = "auto"
+    home_offset: List[int] = field(default_factory=lambda: [10000,
+                                                            50000,
+                                                            2000])
+    limits: List[List[int]] = field(default_factory=lambda: [[0, 200000],
+                                                             [0, 200000],
+                                                             [0, 20000]])
+
 
 class Stage(object):
     def __init__(self, config: StageConfiguration):

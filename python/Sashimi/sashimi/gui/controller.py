@@ -105,33 +105,45 @@ class ControllerWorker(QObject):
             display_img = cv2.cvtColor(display_img, cv2.COLOR_BGR2RGB)
             if self.img_mode == CameraMode.GRAY:
                 display_img = cv2.cvtColor(display_img, cv2.COLOR_BGR2GRAY)
-                display_img = cv2.cvtColor(display_img, cv2.COLOR_GRAY2BGR)  # Convert grayscale back to BGR
+                display_img = cv2.cvtColor(display_img, cv2.COLOR_GRAY2BGR)
+                # Convert grayscale back to BGR
             elif self.img_mode == CameraMode.BLUE:
-                # Keep only the blue channel and set others to 0 to maintain BGR format
+                # Keep only the blue channel
+                # and set others to 0 to maintain BGR format
                 b_channel = display_img[:, :, 2]
                 display_img = np.zeros_like(display_img)
                 display_img[:, :, 2] = b_channel
             elif self.img_mode == CameraMode.GREEN:
-                # Keep only the green channel and set others to 0 to maintain BGR format
+                # Keep only the green channel
+                # and set others to 0 to maintain BGR format
                 g_channel = display_img[:, :, 1]
                 display_img = np.zeros_like(display_img)
                 display_img[:, :, 1] = g_channel
             elif self.img_mode == CameraMode.RED:
-                # Keep only the red channel and set others to 0 to maintain BGR format
+                # Keep only the red channel
+                # and set others to 0 to maintain BGR format
                 r_channel = display_img[:, :, 0]
                 display_img = np.zeros_like(display_img)
                 display_img[:, :, 0] = r_channel
-            self.camera_image_changed.emit(display_img)  # Emit signal with the processed BGR image
+            self.camera_image_changed.emit(display_img)
+            # Emit signal with the processed BGR image
 
             if self.camera.rescale != 1.0:
-                img = cv2.resize(frame[0], (0, 0), fx=self.camera.rescale, fy=self.camera.rescale)
+                img = cv2.resize(frame[0], (0, 0),
+                                 fx=self.camera.rescale,
+                                 fy=self.camera.rescale)
                 frame = (img, exposure)
 
         # Scanner
         self.scanner.loop(frame)
 
         # Stage
-        state = StageState(self.stage.x, self.stage.y, self.stage.z, self.stage.reported_x, self.stage.reported_y, self.stage.reported_z)
+        state = StageState(self.stage.x,
+                           self.stage.y,
+                           self.stage.z,
+                           self.stage.reported_x,
+                           self.stage.reported_y,
+                           self.stage.reported_z)
         self.stage_state_changed.emit(state)
 
     @Slot()
@@ -257,7 +269,7 @@ class ControllerWorker(QObject):
 
     @Slot()
     def scan_select_next_zone(self):
-        if self.selected_scan_zone < len(self.config.scans) -1:
+        if self.selected_scan_zone < len(self.config.scans) - 1:
             self.selected_scan_zone += 1
             print("SCAN: Selected next scan zone")
             self._config_has_changed()
@@ -315,7 +327,8 @@ class ControllerWorker(QObject):
 
     @Slot()
     def scan_set_z_correction(self):
-        self.config.update_z_correction_terms(self.selected_scan_zone, self.stage.z)
+        self.config.update_z_correction_terms(self.selected_scan_zone,
+                                              self.stage.z)
         print("SCAN: Updated Z correction terms")
         self._config_has_changed()
 
