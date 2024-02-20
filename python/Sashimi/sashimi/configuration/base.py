@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Union
@@ -33,6 +34,10 @@ class BaseModel:
         return class_schema(cls)().loads(json)
 
     def save(self, path: Union[Path, str], indent=4):
+        path = Path(path)
+        if not path.parent.exists():
+            print(f"Creating configuration folder: {path.parent}")
+            os.mkdir(path.parent)
         with open(path, "w") as fp:
             metadata = class_schema(self.__class__)().dumps(self, indent=indent)
             fp.write(metadata)
