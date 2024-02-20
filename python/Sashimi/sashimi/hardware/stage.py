@@ -3,6 +3,7 @@ from typing import List
 
 import cv2
 import serial
+from serial.tools import list_ports
 import time
 
 
@@ -70,9 +71,9 @@ class Stage(object):
 
     def auto_detect_port(self, regexp=None):
         if regexp is not None:
-            available_ports = serial.tools.list_ports.grep(regexp)
+            available_ports = list_ports.grep(regexp)
         else:
-            available_ports = serial.tools.list_ports.comports()
+            available_ports = list_ports.comports()
         for port in available_ports:
             # test device
             self.port = port.device
