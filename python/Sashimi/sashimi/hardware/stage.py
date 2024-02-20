@@ -1,3 +1,8 @@
+"""
+Ideally, all distances should be in µm in the program.
+They are converted to millimeters ONLY when creating
+and sending g-code to the stage.
+"""
 from dataclasses import dataclass, field
 from typing import List
 
