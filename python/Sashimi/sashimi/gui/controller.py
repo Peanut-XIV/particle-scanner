@@ -60,7 +60,7 @@ class ControllerWorker(QObject):
         self.stage.start()
 
         # Camera
-        self.camera = Camera(self.config.camera.rescale)
+        self.camera = Camera(self.config.camera)
         self.img_mode = CameraMode.BGR
         self.camera.start()
 

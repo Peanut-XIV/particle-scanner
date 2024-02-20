@@ -13,12 +13,14 @@ capture_lock = threading.Lock()
 
 @dataclass
 class CameraConfiguration:
-    exposure_time: int = 2000
+    exposure_time: int = 2000  # TODO: unit ?
     gain: float = 0.0
     blue: float = 0.0
     red: float = 0.0
     green: float = 0.0
     rescale: float = 0.5
+    width: int = 2100  # in µm  # TODO: include this value in a config file
+    height: int = 1760  # in µm
 
 
 class CaptureThread(threading.Thread):
@@ -68,10 +70,12 @@ class CaptureThread(threading.Thread):
 
 
 class Camera(object):
-    def __init__(self, rescale):
+    def __init__(self, config: CameraConfiguration):
         self.image = None
         self.camera = None
-        self.rescale = rescale
+        self.rescale = config.rescale
+        self.height = config.height
+        self.width = config.width
         self.converter = pylon.ImageFormatConverter()
         self.converter.OutputPixelFormat = pylon.PixelType_BGR8packed
         self.capture_thread = None

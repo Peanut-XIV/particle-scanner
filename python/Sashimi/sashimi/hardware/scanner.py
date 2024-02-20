@@ -37,7 +37,7 @@ class ScannerConfiguration(BaseModel):
     """
     Configuration for the state machine
     """
-    save_dir: str = "F:\\Sashimi"
+    save_dir: str = str(Path.home().joinpath("sashimi_scans"))
     scan_name: str = "test"
     overwrite: bool = False
 
