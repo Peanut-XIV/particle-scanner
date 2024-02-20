@@ -40,9 +40,14 @@ class Stage(object):
 
     def start(self):
         if self.port == "auto":
-            self.auto_detect_port()
+            err = self.auto_detect_port()
+            if err:
+                raise RuntimeError(
+                    "No serial device detected :"
+                    "Please check the device is plugged and the drivers are installed."
+                )
         self.serial = serial.Serial(self.port, 115200)
-        if not self.serial.isOpen():
+        if not self.serial.is_open:
             self.serial.open()
 
     def stop(self):
@@ -55,7 +60,7 @@ class Stage(object):
     def device_reads_gcode(self):
         try:
             self.serial = serial.Serial(self.port, 115200)
-            if not self.serial.isOpen():
+            if not self.serial.is_open:
                 self.serial.open()
         except serial.SerialException:
             return False
@@ -74,6 +79,8 @@ class Stage(object):
             available_ports = list_ports.grep(regexp)
         else:
             available_ports = list_ports.comports()
+        if len(available_ports) == 0:
+            return 1
         for port in available_ports:
             # test device
             self.port = port.device
