@@ -27,7 +27,7 @@ class Controller(object):
 
         # saved/default config
         self.config = Configuration.load()
-        
+
         # user parameters
         if type(save_dir) == str:
             save_dir = Path(save_dir)
@@ -57,7 +57,7 @@ class Controller(object):
         self.start_scan_requested = False
         self.stop_scan_requested = False
         self.time_remaining = None
-        
+
         # instances
         self.stage = Stage(self, com_port)
         self.camera = Camera(self)
@@ -69,7 +69,7 @@ class Controller(object):
 
     def permanent_commands(self, key):
         kb = self.keyboard
-        
+
         # Image display modes
         if key == ord('1'):
             self.img_mode = 1
@@ -218,7 +218,7 @@ class Controller(object):
                                       'BR': [11000, 51000, 2000],
                                       'BL_Z': 2000,
                                       'Z_corrections': [0, 0]})
-        
+
         elif key == kb.DEL_ZONE:  # delete currently selected zone
             if len(self.config.scans) > 1:
                 if self.selected_scan_number == len(self.config.scans):
@@ -238,7 +238,9 @@ class Controller(object):
             scan = self.selected_scan()
             if self.stage.x == scan['BR'][0] or self.stage.y == scan['BR'][1]:
                 return
-            self.selected_scan()['FL'] = [self.stage.x, self.stage.y, self.stage.z]
+            self.selected_scan()['FL'] = [self.stage.x,
+                                          self.stage.y,
+                                          self.stage.z]
             self.config.update_z_correction_terms(self.selected_scan_number - 1)
             self.config.save()
         elif key == kb.SCAN_BR:
@@ -249,7 +251,8 @@ class Controller(object):
             self.config.update_z_correction_terms(self.selected_scan_number - 1)
             self.config.save()
         elif key == kb.SET_Z_COR:
-            self.config.update_z_correction_terms(self.selected_scan_number - 1, self.stage.z)
+            self.config.update_z_correction_terms(
+                    self.selected_scan_number - 1, self.stage.z)
             self.config.save()
 
         # Move to scan area
@@ -278,13 +281,13 @@ class Controller(object):
         if key == self.keyboard.SCAN:
             self.scanner.is_multi_scanning = False
             self.interrupt_flag = True
-    
+
     def check_for_command(self, wait_time=50):
         key = cv2.waitKey(wait_time)
         if key == -1:
             return False
         # print(key)
-        
+
         self.permanent_commands(key)
         if self.scanner.is_multi_scanning:
             self.scanning_commands(key)
@@ -309,7 +312,7 @@ class Controller(object):
         sel_scan_num = self.selected_scan_number
         sel_scan = self.selected_scan()
         blz = self.selected_scan()['BL_Z']
-        
+
         text_status = []
         text_help = []
 
@@ -343,7 +346,7 @@ class Controller(object):
                 "",
                 "esc"
             ]
-            
+
             if self.lang == "en":
                 scan_command = "Stop scanning"
                 text_status = [
@@ -430,7 +433,7 @@ class Controller(object):
                 "",
                 "esc"
             ]
-            
+
             if self.lang == "en":
                 scan_command = "Start Scanning"
                 text_status = [
@@ -489,7 +492,7 @@ class Controller(object):
                     "",
                     "quitter"
                 ]
-        
+
         # Define the help text to be displayed
         if self.show_help:
             if self.lang == "en":
@@ -528,20 +531,23 @@ class Controller(object):
 
         # Draw the UIs text
         for i, t in enumerate(text_status):
-            cv2.putText(im, t, (50, i * 20 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (230, 230, 3055), 1, cv2.LINE_AA)
+            cv2.putText(im, t, (50, i * 20 + 20), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.4, (230, 230, 3055), 1, cv2.LINE_AA)
 
         for i, t in enumerate(text_button):
-            cv2.putText(im, t, (10, i * 20 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (120, 255, 255), 1, cv2.LINE_AA)
+            cv2.putText(im, t, (10, i * 20 + 20), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.4, (120, 255, 255), 1, cv2.LINE_AA)
 
         for i, t in enumerate(text_help):
-            cv2.putText(im, t, (LEFT_EDGE_SIZE + 10, i * 20 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1,
+            cv2.putText(im, t, (LEFT_EDGE_SIZE + 10, i * 20 + 20),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 255), 1,
                         cv2.LINE_AA)
 
         # Show the image in the UI using open CV
         cv2.imshow("im", im)
-    
+
     def wait(self, ms=50, display=True):
-        for frame in range(ms//self.frame_duration_ms):
+        for _ in range(ms//self.frame_duration_ms):
             if display:
                 img = self.camera.latest_image()
                 if img is not None:
@@ -555,7 +561,7 @@ class Controller(object):
         self.camera.set_exposure(self.config.exposure_time)
         self.stage.move_home(self.config.home_offset)
         self.stage.send_command('M107')  # turns off the extruder fan
-        
+
         # Control loop
         while not self.quit_requested:
             self.wait()
