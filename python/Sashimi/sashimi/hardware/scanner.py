@@ -179,7 +179,7 @@ class Scanner(QObject):
         return self._get_exposure_path() / r"images"
 
     def _get_raw_path(self):
-        return self._get_exposure_path() / f"raw" / f"Yi{self.state.stack_y:06d}_Xi{self.state.stack_x:06d}"
+        return self._get_exposure_path() / "raw" / f"Yi{self.state.stack_y:06d}_Xi{self.state.stack_x:06d}"
 
     def _get_stack_filename(self, x, y):
         return self._get_stack_path() / (f"{self.config.scan_name}"
@@ -206,8 +206,7 @@ class Scanner(QObject):
         brz = br[2]
         frz = flz - brz + blz
         mini = min((blz, brz, flz, frz))
-        if mini < 0:
-            mini = 0
+        mini = max(0, mini)
         return mini
 
     def _get_corrected_z(self, dx, dy):
