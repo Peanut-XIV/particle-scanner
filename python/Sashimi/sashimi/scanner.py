@@ -142,7 +142,25 @@ class Scanner(object):
         y_steps = 1 + (scan['BR'][1] - scan['FL'][1]) // self.Y_STEP
         return x_steps, y_steps
 
+    def validate_zones(self) -> bool:
+        error = False
+        for i, zone in enumerate(self.config.scans):
+            FLX, FLY, _ = zone['FL']
+            BRX, BRY, _ = zone['BR']
+            x_ok, y_ok = FLY <= BRY, FLX <= BRX
+            if not (x_ok and y_ok):
+                print(f"Validation error in zone {i + 1}:")
+            if not x_ok:
+                print(f"FLX > BRX: {FLX} > {BRX}")
+                error = True
+            if not y_ok:
+                print(f"FLY > BRY: {FLY} > {BRY}")
+                error = True
+        return error
+
     def multi_scan(self):
+        if self.validate_zones():
+            return
         self.is_multi_scanning = True
         self.current_pic_count = 0
         self.update_total_pic_count()
@@ -199,13 +217,6 @@ class Scanner(object):
     def scan(self, scan_dir):
         selected_scan = self.controller.selected_scan()
         fl = selected_scan['FL']
-        br = selected_scan['BR']
-        try :
-            assert br[0] > fl[0]
-            assert br[1] > fl[1]
-        except AssertionError:
-            print("INVALID SCAN COORDINATES")
-            return
 
         os.makedirs(scan_dir, exist_ok=True)
 
