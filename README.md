@@ -111,6 +111,13 @@ Connect the printer power supply and USB communication cable to the computer.
 
 ## Driver Installation
 
+## 1. 3D Printer Driver
+
+In some cases, the computer may not recognize the 3D printer as it could not find the corresponding driver.
+If your 3D printer uses the CH340 USB to Serial Port chip, you can find a driver for Windows [here](https://wch-ic.com/products/CH340.html).
+
+## 2. Camera Driver
+
 Install the [Basler Pylon Camera Software Suite](https://www.baslerweb.com/en/sales-support/downloads/software-downloads/#type=pylonsoftware;language=all;version=all). If prompted for which driver to install, select USB3.
 
 Confirm the installation has worked by connecting the camera to your computer using the USB3 cable and running **pylon Viewer**
