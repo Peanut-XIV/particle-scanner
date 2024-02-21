@@ -21,7 +21,7 @@ def make_unique_subdir(directory: str | Path = None):
             directory = Path(directory)
 
     d = dt.datetime.now(tz=dt.timezone(dt.timedelta(hours=2)))
-    subdir = f"{d.day}{d.month}{d.year}_{d.hour}{d.minute}"
+    subdir = d.strftime("%Y%m%d_%H%M%S")
     if directory.joinpath(subdir).exists():
         subdir = subdir + str(d.second)
     n = 0
