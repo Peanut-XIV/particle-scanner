@@ -86,43 +86,31 @@ class Controller(object):
 
         # Stack step size commands
         elif key == ord('{'):
-            self.config.stack_step -= 20
-            if self.config.stack_step < 20:
-                self.config.stack_step = 20
+            self.config.stack_step = max(self.config.stack_step - 20, 20)
             self.scanner.update_stack_count()
             self.config.save()
         elif key == ord('}'):
-            self.config.stack_step += 20
-            if self.config.stack_step > 200:
-                self.config.stack_step = 200
+            self.config.stack_step = min(self.config.stack_step + 20, 200)
             self.scanner.update_stack_count()
             self.config.save()
         elif key == ord('['):
-            self.config.stack_height -= 100
-            if self.config.stack_height < 100:
-                self.config.stack_height = 100
+            self.config.stack_height = max(self.config.stack_height - 100, 100)
             self.scanner.update_stack_count()
             self.config.save()
         elif key == ord(']'):
-            self.config.stack_height += 100
-            if self.config.stack_height > 10000:
-                self.config.stack_height = 10000
+            self.config.stack_height = min(self.config.stack_height + 100, 10_000)
             self.scanner.update_stack_count()
             self.config.save()
 
         # Exposure
         elif key == kb.EXPOSURE_UP:
-            self.config.exposure_time += 50
-            if self.config.exposure_time > 50000:
-                self.config.exposure_time = 50000
+            self.config.exposure_time = min(self.config.exposure_time + 50, 50_000)
             self.camera.set_exposure(self.config.exposure_time)
         elif key == kb.EXPOSURE_DOWN:
-            self.config.exposure_time -= 50
-            if self.config.exposure_time < 100:
-                self.config.exposure_time = 100
+            self.config.exposure_time = max(self.config.exposure_time - 50, 100)
             self.camera.set_exposure(self.config.exposure_time)
         # Help
-        elif key == kb.HELP1 or key == kb.HELP2:
+        elif key in (kb.HELP1, kb.HELP2):
             self.show_help = ~self.show_help
 
         # Quit

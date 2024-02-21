@@ -17,7 +17,7 @@ def make_unique_subdir(directory: str | Path = None):
     if directory is None:
         directory = Path.home().joinpath("Desktop", "sashimi")
     else:
-        if type(directory) == str:
+        if isinstance(directory, str):
             directory = Path(directory)
 
     d = dt.datetime.now(tz=dt.timezone(dt.timedelta(hours=2)))
@@ -44,13 +44,12 @@ def is_valid_path(_path):
     if _path.is_dir():
         print("Directory found.")
         return True
-    elif _path.is_file():
+    if _path.is_file():
         print("ERROR: The user_path links to a file")
         return False
-    else:
-        print("Directory not found. It will be created.")
-        os.makedirs(_path)
-        return True
+    print("Directory not found. It will be created.")
+    os.makedirs(_path)
+    return True
 
 
 def is_valid_range(user_range):
@@ -65,15 +64,14 @@ def is_valid_range(user_range):
     if user_range[0] >= user_range[1]:
         print("ERROR: Lower bound greater than higher bound.")
         return False
-    elif not (mini < user_range[0] < maxi and mini < user_range[1] < maxi):
+    if not (mini < user_range[0] < maxi and mini < user_range[1] < maxi):
         print("ERROR: inputs are too high or too low. (Expected 1 < inputs < 10,000)")
         return False
-    elif user_range[0] % 1 or user_range[1] % 1:
+    if user_range[0] % 1 or user_range[1] % 1:
         print("ERROR: Non-integer inputs.")
         return False
-    else:
-        print("Range is valid.")
-        return True
+    print("Range is valid.")
+    return True
 
 
 def is_valid_step_nbr(user_step_nbr, valid_bounds):
