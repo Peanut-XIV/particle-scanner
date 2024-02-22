@@ -47,15 +47,15 @@ class Stage(object):
         self.goto_z(offset[2])
         self.wait_until_position(20000)
 
-    def move_x(self, distance_in_micrometers):
-        self.goto_x(self.x + distance_in_micrometers)
+    def move_x(self, distance_um):
+        self.goto_x(self.x + distance_um)
 
-    def move_y(self, distance_in_micrometers):
-        self.goto_y(self.y + distance_in_micrometers)
+    def move_y(self, distance_um):
+        self.goto_y(self.y + distance_um)
 
-    def move_z(self, distance_in_micrometers):
-        sleep_time = abs(distance_in_micrometers) / 1000
-        self.goto_z(self.z + distance_in_micrometers)
+    def move_z(self, distance_um):
+        sleep_time = abs(distance_um) / 1000
+        self.goto_z(self.z + distance_um)
         time.sleep(sleep_time)
 
     def goto_x(self, position):
@@ -90,7 +90,7 @@ class Stage(object):
     def poll(self):
         dummy = self.read()
         self.send_command("M114 R")
-        self.controller.check_for_command(100)
+        self.controller.wait(100)
         responses = self.read()
         for response in responses:
             if response.startswith("X:"):
@@ -103,13 +103,16 @@ class Stage(object):
                 self.reported_z = int(float(sub_parts[1]) * 1000)
 
     def wait_until_position(self, ms):
-        i = 0
-        while i < (ms / 100):
-            self.poll()
-            if (self.x == self.reported_x) and (self.y == self.reported_y) and (self.z == self.reported_z):
-                # print(f"Position attained in {i*100}ms")
-                return
-            i += 1
+        # tells the printer to finish it's planned movements before executing any other g-code
+        self.send_command('M400')
+        self.send_command("M118 Ready")
+        for i in range(ms//self.controller.frame_duration_ms):
+            self.controller.wait()
+            messages = self.read()
+            for message in messages:
+                if message.startswith('Ready'):
+                    return
+        
         print(f"!!! ERROR: position not attained after {ms}ms ")
 
     def send_command(self, command):

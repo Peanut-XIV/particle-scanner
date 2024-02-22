@@ -9,22 +9,23 @@ class Configuration(object):
         self.stack_height = 1000
         self.stack_step = 60
         self.exposure_time = 2000
+        self.z_margin = 200
         self.scans = [{'FL': [10000, 50000, 2000],
-                       'BR':[11000, 51000, 2000],
-                       'BL_Z':2000,
+                       'BR': [11000, 51000, 2000],
+                       'BL_Z': 2000,
                        'Z_corrections':[0, 0]}]
-        self.top_down = False
-
+    
     def update_z_correction_terms(self, index, blz=None):
         # supposes the scan surface is flat and non-vertical
         fl, br = self.scans[index]['FL'], self.scans[index]['BR']
         x, y, z = 0, 1, 2
-        
+
+        if br[x] == fl[x] or br[y] == fl[y]:
+            print("brx == flx or bry == fly !!!")
+            return
+
         if blz is None:
             blz = (fl[z] + br[z])//2
-        
-        assert (br[x] != fl[x])
-        assert (br[y] != fl[y])
         
         dz_dx = (blz - fl[z]) / (br[x] - fl[x])
         dz_dy = (br[z] - blz) / (br[y] - fl[y])
@@ -34,7 +35,7 @@ class Configuration(object):
         self.save()
 
     def save(self, save_name="config"):
-        config_file = os.path.join(os.path.expanduser("~"), ".sashimi", save_name + ".json")
+        config_file = os.path.join(os.path.expanduser("~"), ".Sashimi", save_name + ".json")
         os.makedirs(os.path.dirname(config_file), exist_ok=True)
         with open(config_file, "w") as f:
             j = json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
@@ -43,7 +44,7 @@ class Configuration(object):
     @staticmethod
     def load(save_name="config"):
         print("Load config")
-        config_file = os.path.join(os.path.expanduser("~"), ".sashimi", save_name + ".json")
+        config_file = os.path.join(os.path.expanduser("~"), ".Sashimi", save_name + ".json")
         if os.path.exists(config_file):
             print("Config file found")
             try:

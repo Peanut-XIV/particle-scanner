@@ -1,0 +1,88 @@
+text_button = [
+	"a z e\t",
+	"q s d\t",
+	"h\t\t",
+	"\t\t",
+	"\t\t",
+	"g t\t\t",
+	"\t\t",
+	"\t\t",
+	"[ ]\t\t",
+	"{ }\t\t",
+	"\t\t",
+	"\t\t",
+	"w x\t\t",
+	"i\t\t",
+	"j\t\t",
+	"u\t\t",
+	"\t\t",
+	"\t\t",
+	"p\t\t",
+	"v\t\t",
+	"B\t\t",
+	"N\t\t",
+	"\t\t",
+	"\t\t",
+	"esc\t\t"
+	]
+text_en = [
+	"POSITION",
+	"[X, Y, Z]: {[self.stage.x, self.stage.y, self.stage.z]}",
+	"Home: {self.config.home_offset}",
+	"- - - - - - - - - - - -",
+	"CAMERA",
+	"Exposure: {self.config.exposure_time}us",
+	"- - - - - - - - - - - -",
+	"STACK: direction",
+	"Height: {self.config.stack_height}um",
+	"Step: {self.config.stack_step}um",
+	"- - - - - - - - - - - -",
+	"SCAN",
+	"Zone: {sel_scan_num}/{len(self.scans)}",
+	"FL: {sel_scan['FL']}",
+	"BR: {sel_scan['BR']}",
+	"BL: Z={blz}",
+	"- - - - - - - - - - - -",
+	"COMMANDS",
+	"{scan_command}",
+	"Add new zone",
+	"Delete current zone",
+	"Delete all scans",
+	"",
+	"",
+	"quit"
+	]
+text_fr = [
+	"POSITION",
+	"[X, Y, Z]: {[self.stage.x, self.stage.y, self.stage.z]}",
+	"Home: {self.config.home_offset}",
+	"- - - - - - - - - - - -",
+	"CAMERA",
+	"Exposure: {self.config.exposure_time}us",
+	"- - - - - - - - - - - -",
+	"PILE: direction",
+	"Hauteur: {self.config.stack_height}um",
+	"Etape: {self.config.stack_step}um",
+	"- - - - - - - - - - - -",
+	"SCAN",
+	"Zone: {sel_scan_num}/{len(self.scans)}",
+	"AvGch: {sel_scan['FL']}",
+	"ArDt: {sel_scan['BR']}",
+	"ArGch: Z={blz}",
+	"- - - - - - - - - - - -",
+	"DEMANDES",
+	"{scan_command}",
+	"Ajouter une zone",
+	"Suppr. la zone",
+	"Suppr. toutes les scans",
+	"",
+	"",
+	"quitter"
+	]
+print("------------------------------------------------ ENGLISH ------------------------------------------------")
+for key, value in zip(text_button, text_en):
+	print(key, value)
+print("\n\n\n")
+print("------------------------------------------------ FRANÇAIS ------------------------------------------------")
+for key, value in zip(text_button, text_fr):
+	print(key, value)
