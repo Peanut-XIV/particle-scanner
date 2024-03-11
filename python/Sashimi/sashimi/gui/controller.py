@@ -5,10 +5,10 @@ import cv2
 import numpy as np
 from PySide6.QtCore import QObject, Signal, Slot, QTimer
 
-from sashimi.hardware.camera import Camera
+from sashimi.hardware.camera import Camera, DummyCamera
 from sashimi.configuration.configuration import Configuration
 from sashimi.hardware.scanner import ScannerConfiguration, Scanner, ScanZone
-from sashimi.hardware.stage import Stage
+from sashimi.hardware.stage import Stage, DummyStage
 
 
 class CameraMode(Enum):
@@ -49,18 +49,26 @@ class ControllerWorker(QObject):
     # Stage
     stage_state_changed = Signal(StageState)
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
 
         # Configuration
         self.config = Configuration.load_default()
 
         # Stage
-        self.stage = Stage(self.config.stage)
+        if kwargs.get("dummy_stage", False): # allows to look for a potentially non existing key
+            print("dummy stage selected")
+            self.stage = DummyStage(self.config.stage)
+        else:
+            self.stage = Stage(self.config.stage)
         self.stage.start()
 
         # Camera
-        self.camera = Camera(self.config.camera)
+        if kwargs.get("dummy_camera", False):
+            print("dummy camera selected")
+            self.camera = DummyCamera(self.config.camera, kwargs["test_screen"])
+        else:
+            self.camera = Camera(self.config.camera)
         self.img_mode = CameraMode.BGR
         self.camera.start()
 

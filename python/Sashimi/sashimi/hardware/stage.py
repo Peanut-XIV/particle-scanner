@@ -208,3 +208,26 @@ class Stage(object):
                     self.buffer = []
         # print(lines)
         return lines
+
+
+class DummyStage(Stage):
+    """
+    a dummy stage class for development and testing purposes.
+    """
+    def __init__(self, config: StageConfiguration):
+        Stage.__init__(self, config)
+
+    def start(self):
+        return
+
+    def stop(self):
+        return
+
+    def send_command(self, command):
+        print(command)
+
+    def busy(self):
+        return
+
+    def is_ready(self):
+        return True

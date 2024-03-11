@@ -1,4 +1,5 @@
 import sys
+from pathlib import Path
 
 from PySide6.QtCore import QThread
 from PySide6.QtWidgets import (
@@ -14,14 +15,14 @@ from sashimi.gui.controller import ControllerWorker
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super().__init__()
 
         # self.controller = controller
         self.setWindowTitle("Sashimi Controller Interface")
 
         # Controller
-        self.worker = ControllerWorker()
+        self.worker = ControllerWorker(**kwargs)
         self.thread = QThread()
         self.worker.moveToThread(self.thread)
         self.worker.camera_image_changed.connect(self.update_image)
@@ -135,7 +136,6 @@ class MainWindow(QMainWindow):
         self.add_config_information(controls_layout)
 
     def add_state_information(self, parent_layout):
-
         label = QLabel("State")
         parent_layout.addWidget(label)
 
@@ -179,7 +179,6 @@ class MainWindow(QMainWindow):
         update_config_information(self.worker.config)
 
         parent_layout.addWidget(displayBox)
-
 
     def add_scan_controls(self, parent_layout):
         layout = QVBoxLayout()
@@ -374,11 +373,16 @@ class MainWindow(QMainWindow):
         # Proceed with the rest of the shutdown process
         super().closeEvent(event)
 
-if __name__ == "__main__":
+
+def main(**kwargs):
     # Assuming 'controller' is an instance of your Controller class
     app = QApplication(sys.argv)
 
-    window = MainWindow()
+    window = MainWindow(**kwargs)
     window.show()
 
     sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()

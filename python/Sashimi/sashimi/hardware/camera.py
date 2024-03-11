@@ -13,7 +13,7 @@ capture_lock = threading.Lock()
 
 @dataclass
 class CameraConfiguration:
-    exposure_time: int = 2000  # TODO: unit ?
+    exposure_time: int = 2000  # µs
     gain: float = 0.0
     blue: float = 0.0
     red: float = 0.0
@@ -87,9 +87,12 @@ class Camera(object):
         self.camera.Open()
         self.load_camera_settings()
         self.cancel_event.clear()
-        self.capture_thread = CaptureThread(self.camera, self.converter, self.cancel_event, self.rescale)
+        self.capture_thread = CaptureThread(self.camera,
+                                            self.converter,
+                                            self.cancel_event,
+                                            self.rescale)
         self.capture_thread.start()
-    
+
     def load_camera_settings(self):
         n_map = self.camera.GetNodeMap()
         n_map.GetNode("ExposureMode").SetValue("Timed")
@@ -102,7 +105,7 @@ class Camera(object):
         self.camera.ChunkModeActive = True
         self.camera.ChunkSelector = "ExposureTime"
         self.camera.ChunkEnable = True
-    
+
     def stop(self):
         self.cancel_event.set()
         self.camera.StopGrabbing()
@@ -130,3 +133,38 @@ class Camera(object):
         self.camera.Gain.SetValue(value)
 
 
+class DummyCamera(Camera):
+    """
+    a dummy camera class for development and testing purposes.
+    """
+    def __init__(self, config: CameraConfiguration, im_path):
+        Camera.__init__(self, config)
+        self.exposure = 2000
+        self.gain = 20
+        self.test_screen = get_test_img(im_path)
+
+    def start(self):
+        return
+
+    def load_camera_settings(self):
+        return
+
+    def stop(self):
+        return
+
+    def latest_image(self, with_exposure=False):
+        img = self.test_screen
+        if with_exposure:
+            return img, self.exposure
+        return img
+
+    def set_exposure(self, value):
+        self.exposure = value
+
+    def set_gain(self, value):
+        self.gain = value
+
+
+def get_test_img(im_path: str):
+    img_mat = cv2.imread(im_path)
+    return img_mat
