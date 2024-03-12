@@ -215,7 +215,7 @@ class DummyStage(Stage):
     a dummy stage class for development and testing purposes.
     """
     def __init__(self, config: StageConfiguration):
-        Stage.__init__(self, config)
+        super().__init__(config)
 
     def start(self):
         return

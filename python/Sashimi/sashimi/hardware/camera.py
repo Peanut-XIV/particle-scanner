@@ -35,7 +35,7 @@ class CaptureThread(threading.Thread):
                  args=(),
                  kwargs=None,
                  verbose=None):
-        super(CaptureThread, self).__init__()
+        super().__init__()
         self.camera = camera
         self.converter = converter
         self.cancel_event = cancel_event
@@ -63,13 +63,12 @@ class CaptureThread(threading.Thread):
                     if self.cancel_event.is_set():
                         grab_result.Release()
                         break
-            except Exception as e:
-                print(f"Error: Failed to grab image")
+            except:
+                print("Error: Failed to grab image")
             grab_result.Release()
-        return
 
 
-class Camera(object):
+class Camera:
     def __init__(self, config: CameraConfiguration):
         self.image = None
         self.camera = None
@@ -138,7 +137,7 @@ class DummyCamera(Camera):
     a dummy camera class for development and testing purposes.
     """
     def __init__(self, config: CameraConfiguration, im_path):
-        Camera.__init__(self, config)
+        super().__init__(config)
         self.exposure = 2000
         self.gain = 20
         self.test_screen = get_test_img(im_path)

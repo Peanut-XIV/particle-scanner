@@ -66,10 +66,8 @@ class MainWindow(QMainWindow):
 
     def init_camera_ui(self, camera_layout):
         colour_mode_layout = QHBoxLayout()
-
-        self.button_bgr = QPushButton("BGR")
-        test = self.button_bgr.clicked.connect(self.worker.camera_bgr)
-        print(test)
+        button_bgr = QPushButton("BGR")
+        button_bgr.clicked.connect(self.worker.camera_bgr)
         button_blue = QPushButton("Blue")
         button_blue.clicked.connect(self.worker.camera_blue)
         button_green = QPushButton("Green")
@@ -77,7 +75,7 @@ class MainWindow(QMainWindow):
         button_red = QPushButton("Red")
         button_red.clicked.connect(self.worker.camera_red)
 
-        colour_mode_layout.addWidget(self.button_bgr)
+        colour_mode_layout.addWidget(button_bgr)
         colour_mode_layout.addWidget(button_blue)
         colour_mode_layout.addWidget(button_green)
         colour_mode_layout.addWidget(button_red)
