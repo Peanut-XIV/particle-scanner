@@ -73,7 +73,7 @@ class ControllerWorker(QObject):
         self.camera.start()
 
         # Scanner
-        self.scanner = Scanner(self.config.scanner, self.camera, self.stage)
+        self.scanner = Scanner(self.config.scanner, self.camera, self.stage, **kwargs)
 
         # Zones
         self.selected_scan_zone = 0

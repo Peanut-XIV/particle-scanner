@@ -12,4 +12,5 @@ if __name__ == "__main__":
             dummy_camera=dummy_cam,
             dummy_stage=dummy_stage,
             test_screen=image_path
+            stack_method="helicon"
         )

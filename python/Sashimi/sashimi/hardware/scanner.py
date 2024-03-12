@@ -102,11 +102,15 @@ class Scanner(QObject):
     def __init__(self,
                  config: ScannerConfiguration,
                  camera: Camera,
-                 stage: Stage):
+                 stage: Stage,
+                 **kwargs):
 
         super().__init__()
         # Configuration
         self.config = config
+        self.stack_method = kwargs["stack_method"]  
+        # TODO: implement stack method as a config option 
+        #       instead of a kwarg passed down from main()
 
         # State
         self.state = ScannerState()
@@ -282,7 +286,7 @@ class Scanner(QObject):
             self.state.is_scanning = True
 
             # Create scan, removing existing if necessary
-            scan_dir = Path(self.config.save_dir) / self.config.scan_name
+            scan_dir = self._get_scan_path()
             if scan_dir.exists() and self.config.overwrite:
                 utils.remove_folder(scan_dir)
             Path(self.config.save_dir).mkdir(parents=True, exist_ok=True)
@@ -294,7 +298,10 @@ class Scanner(QObject):
 
             # Parallel stack command queue
             self.queue = mp.Queue()
-            arguments = (self.queue, self.error_logs, self.config.remove_raw_images)
+            arguments = (self.queue,
+                         self.error_logs,
+                         self.stack_method,
+                         self.config.remove_raw_images)
             self.parallel_process = mp.Process(target=helicon_stack.parallel_stack, args=arguments)
             self.parallel_process.start()
 

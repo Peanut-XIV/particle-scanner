@@ -13,12 +13,16 @@ import traceback
 
 
 def get_helicon_focus():
-    helicon_focus = r"C:\\Program Files\\Helicon Software\\Helicon Focus 7\\HeliconFocus.exe"
-    if not os.path.exists(helicon_focus):
-        helicon_focus = r"C:\Program Files\Helicon Software\Helicon Focus 8\HeliconFocus.exe"
-        if not os.path.exists(helicon_focus):
-            raise ResourceWarning("Helicon Focus was not found")
-    return helicon_focus
+    # TODO: Add Helicon stack location in config file
+    possible_paths = [
+        "/Applications/HeliconFocus.app/Contents/MacOS/HeliconFocus",
+        r"C:\\Program Files\\Helicon Software\\Helicon Focus 7\\HeliconFocus.exe",
+        r"C:\Program Files\Helicon Software\Helicon Focus 8\HeliconFocus.exe",
+    ]
+    for path in possible_paths:
+        if os.path.exists(path):
+            return path
+    raise ResourceWarning("Helicon Focus was not found")
 
 
 def get_focus_stack():
@@ -115,11 +119,17 @@ def stack_for_multiple_exp(scan_path: Path, f_stacks_path: Path, exp_values: lis
             ]
             print(command)
             subprocess.run(command, shell=True)
-            
 
-def parallel_stack(queue, error_logs, remove_raw=False):
-    with open(error_logs, mode='w', encoding='UTF-8') as file:
-        sys.stderr = sys.stdout = file
+
+def parallel_stack(queue, error_logs, stack_method="focus_stack", remove_raw=False):
+    if not Path(error_logs).exists():
+        write_mode = "x"
+    else:
+        write_mode = "w"
+    os.makedirs(Path(error_logs).parent, exist_ok=True)
+    with open(error_logs, mode=write_mode, encoding='utf_8') as file:
+        sys.stderr = file
+        sys.stdout = file
         while True:
             if queue.empty():
                 sleep(0.5)
@@ -130,15 +140,18 @@ def parallel_stack(queue, error_logs, remove_raw=False):
 
             raw_folder = Path(msg[0])
             image_path = msg[1]
-
             try:
-                # stack_with_helicon(raw_folder, image_path)
-                stack_with_focus_stack(raw_folder, image_path)
+                if stack_method == "helicon":
+                    stack_with_helicon(raw_folder, image_path)
+                elif stack_method == "focus_stack":
+                    stack_with_focus_stack(raw_folder, image_path)
+                else:
+                    raise ValueError(f"Invalid stack method name: {stack_method}")
             except:
                 print(f"Error processing {raw_folder}")
                 traceback.print_exc()
-
-            shutil.rmtree(raw_folder)
+            if remove_raw:
+                shutil.rmtree(raw_folder)
 
 
 def stack_with_helicon(raw_images_path: Union[str, Path], image_path: Union[str, Path]):
