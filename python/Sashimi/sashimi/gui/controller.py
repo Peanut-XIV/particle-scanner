@@ -286,8 +286,8 @@ class ControllerWorker(QObject):
     def scan_add_zone(self):
         self.config.scanner.zones.append(
             ScanZone(
-                FL=[10000, 50000, 2000],
-                BR=[11000, 51000, 2000],
+                FL=[1000, 1000, 2000],
+                BR=[2000, 2000, 2000],
                 BL_Z=2000,
                 Z_corrections=[0, 0]
             )
@@ -316,7 +316,7 @@ class ControllerWorker(QObject):
         if len(self.config.scanner.zones) == 0:
             self.scan_add_zone()
         zone = self.config.scanner.zones[self.selected_scan_zone]
-        if not (self.stage.x == zone.BR[0] or self.stage.y == zone.BR[1]):
+        if self.stage.x < zone.BR[0] and self.stage.y < zone.BR[1]:
             zone.FL = [self.stage.x, self.stage.y, self.stage.z]
             self.config.update_z_correction_terms(self.selected_scan_zone)
             print("SCAN: Set front left corner of zone")
@@ -327,7 +327,7 @@ class ControllerWorker(QObject):
         if len(self.config.scanner.zones) == 0:
             self.scan_add_zone()
         zone = self.config.scanner.zones[self.selected_scan_zone]
-        if not (self.stage.x == zone.FL[0] or self.stage.y == zone.FL[1]):
+        if self.stage.x > zone.FL[0] and self.stage.y > zone.FL[1]:
             zone.BR = [self.stage.x, self.stage.y, self.stage.z]
             self.config.update_z_correction_terms(self.selected_scan_zone)
             print("SCAN: Set back right corner zone")
