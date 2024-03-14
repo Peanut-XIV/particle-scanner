@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import QThread
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
         QApplication, QMainWindow, QPushButton, QVBoxLayout,
         QLabel, QWidget, QHBoxLayout, QDoubleSpinBox,
@@ -15,6 +15,7 @@ from sashimi.gui.controller import ControllerWorker
 
 
 class MainWindow(QMainWindow):
+    disable_ctrl_buttons = Signal(bool)
     def __init__(self, **kwargs):
         super().__init__()
 
@@ -22,7 +23,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Sashimi Controller Interface")
 
         # Controller
-        self.worker = ControllerWorker(**kwargs)
+        self.worker = ControllerWorker(disable_ctrl=self.disable_ctrl_buttons, **kwargs)
         self.thread = QThread()
         self.worker.moveToThread(self.thread)
         self.worker.camera_image_changed.connect(self.update_image)
@@ -101,6 +102,7 @@ class MainWindow(QMainWindow):
         exposureLabel = QLabel("Exposure Time (ms):", self)
         layout.addWidget(exposureLabel)
         exposureSpinBox = QSpinBox(self)
+        self.disable_ctrl_buttons.connect(exposureSpinBox.setDisabled)
         exposureSpinBox.setRange(100, 20000)
         exposureSpinBox.setSingleStep(500)
         exposureSpinBox.setValue(self.worker.config.camera.exposure_time)
@@ -116,6 +118,7 @@ class MainWindow(QMainWindow):
         label = QLabel("Gain:", self)
         layout.addWidget(label)
         spinBox = QDoubleSpinBox(self)
+        self.disable_ctrl_buttons.connect(spinBox.setDisabled)
         spinBox.setRange(0.0, 20.0)
         spinBox.setSingleStep(0.5)
         spinBox.setValue(self.worker.config.camera.gain)
@@ -196,10 +199,12 @@ class MainWindow(QMainWindow):
         row1Layout.addWidget(btnNextZone)
 
         btnAddZone = QPushButton("New Zone")
+        self.disable_ctrl_buttons.connect(btnAddZone.setDisabled)
         btnAddZone.clicked.connect(self.worker.scan_add_zone)
         row1Layout.addWidget(btnAddZone)
 
         btnDeleteZone = QPushButton("Delete Zone")
+        self.disable_ctrl_buttons.connect(btnDeleteZone.setDisabled)
         btnDeleteZone.clicked.connect(self.worker.scan_delete_zone)
         row1Layout.addWidget(btnDeleteZone)
         layout.addLayout(row1Layout)
@@ -208,14 +213,17 @@ class MainWindow(QMainWindow):
         row2Layout = QHBoxLayout()
 
         btnSetFL = QPushButton("Set Front Left")
+        self.disable_ctrl_buttons.connect(btnSetFL.setDisabled)
         btnSetFL.clicked.connect(self.worker.scan_set_FL)
         row2Layout.addWidget(btnSetFL)
 
         btnSetBR = QPushButton("Set Back Right")
+        self.disable_ctrl_buttons.connect(btnSetBR.setDisabled)
         btnSetBR.clicked.connect(self.worker.scan_set_BR)
         row2Layout.addWidget(btnSetBR)
 
         btnSetZCor = QPushButton("Set Z Correction")
+        self.disable_ctrl_buttons.connect(btnSetZCor.setDisabled)
         btnSetZCor.clicked.connect(self.worker.scan_set_z_correction)
         row2Layout.addWidget(btnSetZCor)
         layout.addLayout(row2Layout)
@@ -228,6 +236,7 @@ class MainWindow(QMainWindow):
 
         row_4_layout = QHBoxLayout()
         start_scan_button = QPushButton("Start Scanning")
+        self.disable_ctrl_buttons.connect(start_scan_button.setDisabled)
         start_scan_button.clicked.connect(self.worker.scanner.start)
         row_4_layout.addWidget(start_scan_button)
 
@@ -251,13 +260,15 @@ class MainWindow(QMainWindow):
         # zero_button.clicked.connect(self.worker.stage_zero)
         # home_layout.addWidget(zero_button)
         home_button = QPushButton("Home")
+        self.disable_ctrl_buttons.connect(home_button.setDisabled)
         home_button.clicked.connect(self.worker.stage_home)
         home_layout.addWidget(home_button)
+
         set_home_button = QPushButton("Set Home")
+        self.disable_ctrl_buttons.connect(set_home_button.setDisabled)
         set_home_button.clicked.connect(self.worker.stage_set_home)
         home_layout.addWidget(set_home_button)
         self.add_layout_as_widget(home_layout, parent_layout)
-
         # Label
         label = QLabel()
         label.setText("Movement")
@@ -272,47 +283,59 @@ class MainWindow(QMainWindow):
                 # Place "Left" and "Right" in the middle axis (column 2 and 3)
                 if row == 2 and col == 1:
                     button = QPushButton("Left")
+                    self.disable_ctrl_buttons.connect(button.setDisabled)
                     button.clicked.connect(self.worker.stage_move_left)
                 elif row == 2 and col == 3:
                     button = QPushButton("Right")
+                    self.disable_ctrl_buttons.connect(button.setDisabled)
                     button.clicked.connect(self.worker.stage_move_right)
                 # "X Left" and "X Right" next to "Left" and "Right" (columns 0 and 5)
                 elif row == 2 and col == 0:
                     button = QPushButton("X Left")
+                    self.disable_ctrl_buttons.connect(button.setDisabled)
                     button.clicked.connect(self.worker.stage_move_x_left)
                 elif row == 2 and col == 4:
                     button = QPushButton("X Right")
+                    self.disable_ctrl_buttons.connect(button.setDisabled)
                     button.clicked.connect(self.worker.stage_move_x_right)
 
 
                 # Place "Forward" and "Back" in the middle axis (row 2 and 3)
                 elif col == 2 and row == 1:
                     button = QPushButton("Forward")
+                    self.disable_ctrl_buttons.connect(button.setDisabled)
                     button.clicked.connect(self.worker.stage_move_forward)
                 elif col == 2 and row == 3:
                     button = QPushButton("Back")
+                    self.disable_ctrl_buttons.connect(button.setDisabled)
                     button.clicked.connect(self.worker.stage_move_back)
                 # "X Forward" and "X Back" next to "Forward" and "Back" (row 0 and 4, column 2)
                 elif col == 2 and row == 0:
                     button = QPushButton("X Forward")
+                    self.disable_ctrl_buttons.connect(button.setDisabled)
                     button.clicked.connect(self.worker.stage_move_x_forward)
                 elif col == 2 and row == 4:
                     button = QPushButton("X Back")
+                    self.disable_ctrl_buttons.connect(button.setDisabled)
                     button.clicked.connect(self.worker.stage_move_x_back)
 
                 # Place "Up" and "Down" in the last column (row 2 and 3)
                 elif col == 5 and row == 1:
                     button = QPushButton("Up")
+                    self.disable_ctrl_buttons.connect(button.setDisabled)
                     button.clicked.connect(self.worker.stage_move_up)
                 elif col == 5 and row == 3:
                     button = QPushButton("Down")
+                    self.disable_ctrl_buttons.connect(button.setDisabled)
                     button.clicked.connect(self.worker.stage_move_down)
                 # "X Up" and "X Down" below "Up" and "Down" (last column, row 2 and 4)
                 elif col == 5 and row == 0:
                     button = QPushButton("X Up")
+                    self.disable_ctrl_buttons.connect(button.setDisabled)
                     button.clicked.connect(self.worker.stage_move_x_up)
                 elif col == 5 and row == 4:
                     button = QPushButton("X Down")
+                    self.disable_ctrl_buttons.connect(button.setDisabled)
                     button.clicked.connect(self.worker.stage_move_x_down)
 
                 else:
@@ -326,6 +349,7 @@ class MainWindow(QMainWindow):
         label = QLabel("Stack Height (um):", self)
         layout.addWidget(label)
         spinBox = QSpinBox(self)
+        self.disable_ctrl_buttons.connect(spinBox.setDisabled)
         spinBox.setRange(100, 10000)
         spinBox.setSingleStep(200)
         spinBox.setValue(self.worker.config.scanner.stack_height)
@@ -343,6 +367,7 @@ class MainWindow(QMainWindow):
         label = QLabel("Stack Step (um):", self)
         layout.addWidget(label)
         spinBox = QSpinBox(self)
+        self.disable_ctrl_buttons.connect(spinBox.setDisabled)
         spinBox.setRange(20, 200)
         spinBox.setSingleStep(20)
         spinBox.setValue(self.worker.config.scanner.stack_step)

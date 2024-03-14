@@ -49,7 +49,7 @@ class ControllerWorker(QObject):
     # Stage
     stage_state_changed = Signal(StageState)
 
-    def __init__(self, **kwargs):
+    def __init__(self, disable_ctrl, **kwargs):
         super().__init__()
 
         # Configuration
@@ -73,7 +73,7 @@ class ControllerWorker(QObject):
         self.camera.start()
 
         # Scanner
-        self.scanner = Scanner(self.config.scanner, self.camera, self.stage, **kwargs)
+        self.scanner = Scanner(self.config.scanner, self.camera, self.stage, disable_ctrl, **kwargs)
 
         # Zones
         self.selected_scan_zone = 0
@@ -89,6 +89,9 @@ class ControllerWorker(QObject):
         # Update UI with config values
         self.camera_exposure_changed.emit(self.config.camera.exposure_time)
         self.camera_gain_changed.emit(self.config.camera.gain)
+
+    def is_not_idle(self):
+        return self.scanner.state.state != "idle"
 
     def _config_has_changed(self):
         self.config_changed.emit(self.config)

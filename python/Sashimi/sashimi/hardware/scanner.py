@@ -103,13 +103,14 @@ class Scanner(QObject):
                  config: ScannerConfiguration,
                  camera: Camera,
                  stage: Stage,
+                 disable_ctrl: Signal(bool),
                  **kwargs):
 
         super().__init__()
         # Configuration
         self.config = config
-        self.stack_method = kwargs["stack_method"]  
-        # TODO: implement stack method as a config option 
+        self.stack_method = kwargs["stack_method"]
+        # TODO: implement stack method as a config option
         #       instead of a kwarg passed down from main()
 
         # State
@@ -133,6 +134,8 @@ class Scanner(QObject):
         # Update step
         self.state.step_x = int(self.camera.width * (1 - self.config.overlap_x))
         self.state.step_y = int(self.camera.height * (1 - self.config.overlap_y))
+
+        self.disable_ctrl = disable_ctrl
 
     Slot()
     def start(self):
@@ -259,6 +262,7 @@ class Scanner(QObject):
 
         # --------------------------------------------------------------------
         if state == "idle":
+            self.disable_ctrl.emit(False)
             return
         # --------------------------------------------------------------------
         elif state == "wait":
@@ -274,6 +278,7 @@ class Scanner(QObject):
         # --------------------------------------------------------------------
         elif state == "init":
             # Return to idea state if no zones
+            self.disable_ctrl.emit(True)
             if len(self.config.zones) == 0:
                 self._transition_to("idle")
                 return
