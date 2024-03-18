@@ -5,7 +5,7 @@ from itk.itkImagePython import itkImageUC3, itkImageUC2
 from tqdm import tqdm
 
 # Directory containing the images
-path = r"F:\Sashimi\20240211_233555_test\Zone000\Exp02000\images"
+path = "/Users/louis/Desktop/dossier2"
 scale = 2
 
 # List all image files in the directory and sort them according to your custom logic
