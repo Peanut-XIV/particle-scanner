@@ -67,7 +67,7 @@ class Camera(object):
     def load_camera_settings(self):
         n_map = self.camera.GetNodeMap()
         n_map.GetNode("ExposureMode").SetValue("Timed")
-        pylon.FeaturePersistence_Load("nodeFile.pfs", n_map)
+        pylon.FeaturePersistence.Load("nodeFile.pfs", n_map)
         self.camera.StaticChunkNodeMapPoolSize = self.camera.MaxNumBuffer.GetValue()
         self.camera.ChunkModeActive = True
         self.camera.ChunkSelector = "ExposureTime"

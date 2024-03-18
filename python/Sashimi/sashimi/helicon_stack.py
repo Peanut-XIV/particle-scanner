@@ -110,8 +110,14 @@ def stack_for_multiple_exp(scan_path: Path, f_stacks_path: Path, exp_values: lis
             
 
 def parallel_stack(queue, error_logs, exposures, remove_raw=False):
-    with open(error_logs, mode='w', encoding='UTF-8') as file:
-        sys.stderr = sys.stdout = file
+    write_mode = 'w'
+    error_logs = Path(error_logs)
+    if not error_logs.exists():
+        write_mode = 'x'
+    if not error_logs.parent.exists():
+        os.makedirs(error_logs.parent)
+    with open(error_logs, mode=write_mode, encoding='UTF-8') as file:
+        # sys.stderr = sys.stdout = file
         while True:
             if queue.empty():
                 sleep(0.5)
