@@ -71,13 +71,15 @@ class CaptureThread(threading.Thread):
             grab_result.Release()
 
 
-class Camera:
-    def __init__(self, config: CameraConfiguration):
+class Camera(object):
+    def __init__(self):
+        self.pixel_size = 3.45
+        self.objective_magnification = 4
+        self.width = 2448
+        self.height = 2048
+
         self.image = None
         self.camera = None
-        self.rescale = config.rescale
-        self.height = config.height
-        self.width = config.width
         self.converter = pylon.ImageFormatConverter()
         self.converter.OutputPixelFormat = pylon.PixelType_BGR8packed
         self.capture_thread = None
@@ -89,10 +91,8 @@ class Camera:
         self.camera.Open()
         self.load_camera_settings()
         self.cancel_event.clear()
-        self.capture_thread = CaptureThread(self.camera,
-                                            self.converter,
-                                            self.cancel_event,
-                                            self.rescale)
+
+        self.capture_thread = CaptureThread(self.camera, self.converter, self.cancel_event)
         self.capture_thread.start()
 
     def load_camera_settings(self):
@@ -139,8 +139,8 @@ class DummyCamera(Camera):
     """
     a dummy camera class for development and testing purposes.
     """
-    def __init__(self, config: CameraConfiguration):
-        super().__init__(config)
+    def __init__(self):
+        super().__init__()
         self.exposure = 2000
         self.gain = 20
         im_path = str(files(sashimi.resources).joinpath("testscreen.png"))

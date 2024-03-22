@@ -2,6 +2,8 @@
 Focus stacking with laplacian pyramids
 
 Taken from https://github.com/sjawhar/focus-stacking
+
+Use https://github.com/PetteriAimonen/focus-stack instead, which is much faster as it is written in C++ with OpenCL
 """
 import argparse
 import os

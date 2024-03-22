@@ -2,11 +2,8 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import QThread, Signal
-from PySide6.QtWidgets import (
-        QApplication, QMainWindow, QPushButton, QVBoxLayout,
-        QLabel, QWidget, QHBoxLayout, QDoubleSpinBox,
-        QSpinBox, QGridLayout, QLayout, QTextEdit
-)
+from PySide6.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QLabel, QWidget, QHBoxLayout, \
+    QDoubleSpinBox, QSpinBox, QGridLayout, QLayout, QTextEdit, QLineEdit
 from PySide6.QtGui import QImage, QPixmap
 import numpy as np
 
@@ -131,11 +128,31 @@ class MainWindow(QMainWindow):
         parent_layout.addWidget(widget)
 
     def init_controls_ui(self, controls_layout):
-
+        self.add_scan_information(controls_layout)
         self.add_state_information(controls_layout)
         self.add_movement_controls(controls_layout)
         self.add_scan_controls(controls_layout)
         self.add_config_information(controls_layout)
+
+    def add_scan_information(self, parent_layout):
+        label = QLabel()
+        label.setText("Scan")
+        parent_layout.addWidget(label)
+
+        text_field1 = QLineEdit()
+        text_field1.textChanged.connect(self.worker.scan_set_name)
+        parent_layout.addWidget(text_field1)
+
+        text_field2 = QLineEdit()
+        text_field2.textChanged.connect(self.worker.scan_set_save_dir)
+        parent_layout.addWidget(text_field2)
+
+        def update(config):
+            text_field1.setText(config.scanner.scan_name)
+            text_field2.setText(config.scanner.save_dir)
+        update(self.worker.config)
+
+        self.worker.config_changed.connect(update)
 
     def add_state_information(self, parent_layout):
         label = QLabel("State")
@@ -148,24 +165,32 @@ class MainWindow(QMainWindow):
         layout.addWidget(y_label)
         z_label = QLabel("Z:")
         layout.addWidget(z_label)
+        parent_layout.addLayout(layout)
+
+        layout = QHBoxLayout()
+        xs_label = QLabel("*X:")
+        layout.addWidget(xs_label)
+        ys_label = QLabel("*Y:")
+        layout.addWidget(ys_label)
+        zs_label = QLabel("*Z:")
+        layout.addWidget(zs_label)
+        parent_layout.addLayout(layout)
 
         def update_stage_state(stage_state):
             x_label.setText(f"X: {stage_state.x}")
             y_label.setText(f"Y: {stage_state.y}")
             z_label.setText(f"Z: {stage_state.z}")
-
+            x_label.setText(f"*X: {stage_state.reported_x}")
+            y_label.setText(f"*Y: {stage_state.reported_y}")
+            z_label.setText(f"*Z: {stage_state.reported_z}")
         self.worker.stage_state_changed.connect(update_stage_state)
-        # update_stage_state(self.worker.stage.state)
 
-        parent_layout.addLayout(layout)
 
     def add_config_information(self, parent_layout):
         displayBox = QTextEdit()
         displayBox.setReadOnly(True)
         def update_config_information(config: Configuration):
             message = ""
-            message += f"Home:\t{config.stage.home_offset[0]}\t{config.stage.home_offset[1]}\t{config.stage.home_offset[2]}"
-            message += "\n"
             for i, zone in enumerate(config.scanner.zones):
                 if self.worker.selected_scan_zone == i:
                     message += f"\n\nScan {i}: [SELECTED]"
@@ -235,6 +260,11 @@ class MainWindow(QMainWindow):
         self.add_stack_step_control(row3Layout)
         layout.addLayout(row3Layout)
 
+        sub_layout = QHBoxLayout()
+        self.add_overlap_x_control(sub_layout)
+        self.add_overlap_y_control(sub_layout)
+        layout.addLayout(sub_layout)
+
         row_4_layout = QHBoxLayout()
         start_scan_button = QPushButton("Start Scanning")
         self.disable_ctrl_buttons.connect(start_scan_button.setDisabled)
@@ -299,7 +329,6 @@ class MainWindow(QMainWindow):
                     button = QPushButton("X Right")
                     self.disable_ctrl_buttons.connect(button.setDisabled)
                     button.clicked.connect(self.worker.stage_move_x_right)
-
 
                 # Place "Forward" and "Back" in the middle axis (row 2 and 3)
                 elif col == 2 and row == 1:
@@ -377,6 +406,44 @@ class MainWindow(QMainWindow):
         def update(config: Configuration):
             spinBox.setValue(config.scanner.stack_step)
         self.worker.config_changed.connect(update)
+        widget = QWidget()
+        widget.setLayout(layout)
+        parent_layout.addWidget(widget)
+
+    def add_overlap_x_control(self, parent_layout):
+        layout = QVBoxLayout()
+        label = QLabel("Overlap X (%):", self)
+        layout.addWidget(label)
+        spinBox = QSpinBox(self)
+        spinBox.setRange(0., 100)
+        spinBox.setSingleStep(5)
+        layout.addWidget(spinBox)
+
+        spinBox.valueChanged.connect(self.worker.stack_set_overlap_x)
+        def update(config: Configuration):
+            spinBox.setValue(config.scanner.overlap_x * 100)
+        update(self.worker.config)
+        self.worker.config_changed.connect(update)
+
+        widget = QWidget()
+        widget.setLayout(layout)
+        parent_layout.addWidget(widget)
+
+    def add_overlap_y_control(self, parent_layout):
+        layout = QVBoxLayout()
+        label = QLabel("Overlap Y (%):", self)
+        layout.addWidget(label)
+        spinBox = QSpinBox(self)
+        spinBox.setRange(0, 100)
+        spinBox.setSingleStep(5)
+        layout.addWidget(spinBox)
+
+        spinBox.valueChanged.connect(self.worker.stack_set_overlap_y)
+        def update(config: Configuration):
+            spinBox.setValue(config.scanner.overlap_y * 100)
+        update(self.worker.config)
+        self.worker.config_changed.connect(update)
+
         widget = QWidget()
         widget.setLayout(layout)
         parent_layout.addWidget(widget)

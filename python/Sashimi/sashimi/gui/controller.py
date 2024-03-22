@@ -70,9 +70,9 @@ class ControllerWorker(QObject):
         # Camera
         if kwargs.get("dummy_camera", False):
             print("dummy camera selected")
-            self.camera = DummyCamera(self.config.camera)
+            self.camera = DummyCamera()
         else:
-            self.camera = Camera(self.config.camera)
+            self.camera = Camera()
         self.img_mode = CameraMode.BGR
         self.camera.start()
 
@@ -128,12 +128,11 @@ class ControllerWorker(QObject):
 
     @Slot()
     def loop(self):
-
         # Camera
         frame = self.camera.latest_image(with_exposure=True)
         if frame is not None:
             img, exposure = frame
-            display_img = cv2.resize(img, (640, 480))
+            display_img = cv2.resize(img, (2448//3, 2048//3))
             display_img = cv2.cvtColor(display_img, cv2.COLOR_BGR2RGB)
             if self.img_mode == CameraMode.GRAY:
                 display_img = cv2.cvtColor(display_img, cv2.COLOR_BGR2GRAY)
@@ -400,3 +399,26 @@ class ControllerWorker(QObject):
         self.config.scanner.zones[index].BL_Z = blz
         self.config.scanner.zones[index].Z_corrections = [dz_dx, dz_dy]
 
+    @Slot()
+    def stack_set_overlap_x(self, value):
+        self.config.scanner.overlap_x = value / 100
+        print("STACK: Set overlap X")
+        self._config_has_changed()
+
+    @Slot()
+    def stack_set_overlap_y(self, value):
+        self.config.scanner.overlap_y = value / 100
+        print("STACK: Set overlap Y")
+        self._config_has_changed()
+
+    @Slot()
+    def scan_set_name(self, name):
+        self.config.scanner.scan_name = name
+        print("SCAN: Set name")
+        self._config_has_changed()
+
+    @Slot()
+    def scan_set_save_dir(self, path):
+        self.config.scanner.save_dir = path
+        print("SCAN: Set save dir")
+        self._config_has_changed()
