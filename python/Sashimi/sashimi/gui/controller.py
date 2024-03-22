@@ -34,9 +34,12 @@ class ControllerWorker(QObject):
     # Image
     camera_image_changed = Signal(object)
 
-    # Camera settings
+    # Values to display in UI
     camera_exposure_changed = Signal(int)  # Signal to send exposure time to the main thread
     camera_gain_changed = Signal(float)  # Signal to send gain to the main thread
+    stack_step_changed = Signal(int)
+    stack_height_changed = Signal(int)
+    zones_changed = Signal(int, Configuration)
 
     # Extra camera settings
     camera_blue_balance_changed = Signal(float)  # Sign
@@ -49,14 +52,15 @@ class ControllerWorker(QObject):
     # Stage
     stage_state_changed = Signal(StageState)
 
-    def __init__(self, disable_ctrl, **kwargs):
+    def __init__(self, disable_ctrl: Signal, request_update: Signal, **kwargs):
         super().__init__()
 
         # Configuration
         self.config = Configuration.load_default()
 
         # Stage
-        if kwargs.get("dummy_stage", False): # allows to look for a potentially non existing key
+        # dict.get() allows to look for a non-existing key without throwing an error
+        if kwargs.get("dummy_stage", False):
             print("dummy stage selected")
             self.stage = DummyStage(self.config.stage)
         else:
@@ -66,7 +70,7 @@ class ControllerWorker(QObject):
         # Camera
         if kwargs.get("dummy_camera", False):
             print("dummy camera selected")
-            self.camera = DummyCamera(self.config.camera, kwargs["test_screen"])
+            self.camera = DummyCamera(self.config.camera)
         else:
             self.camera = Camera(self.config.camera)
         self.img_mode = CameraMode.BGR
@@ -87,17 +91,34 @@ class ControllerWorker(QObject):
         self.camera.set_gain(self.config.camera.gain)
 
         # Update UI with config values
-        self.camera_exposure_changed.emit(self.config.camera.exposure_time)
-        self.camera_gain_changed.emit(self.config.camera.gain)
+        request_update.connect(self._config_has_changed)
+        self.config_changed.connect(self.update_UI_info)
+        self._config_has_changed()
 
     def is_not_idle(self):
         return self.scanner.state.state != "idle"
 
+    @Slot()
     def _config_has_changed(self):
+        """
+        this method is a slot to allow the main window to update it info
+        after initializing
+        """
         self.config_changed.emit(self.config)
 
     def _camera_image_has_changed(self, img):
         self.camera_image_changed.emit(img)
+
+    @Slot(Configuration)
+    def update_UI_info(self, config):
+        """
+        Does not include image update
+        """
+        self.camera_exposure_changed.emit(config.camera.exposure_time)
+        self.camera_gain_changed.emit(config.camera.gain)
+        self.stack_height_changed.emit(config.scanner.stack_height)
+        self.stack_step_changed.emit(config.scanner.stack_height)
+        self.zones_changed.emit(self.selected_scan_zone, config)
 
     @Slot()
     def stop(self):
@@ -280,7 +301,7 @@ class ControllerWorker(QObject):
 
     @Slot()
     def scan_select_next_zone(self):
-        if self.selected_scan_zone < len(self.config.scans) - 1:
+        if self.selected_scan_zone < len(self.config.scanner.zones) - 1:
             self.selected_scan_zone += 1
             print("SCAN: Selected next scan zone")
             self._config_has_changed()
@@ -301,9 +322,10 @@ class ControllerWorker(QObject):
 
     @Slot()
     def scan_delete_zone(self):
-        if len(self.config.scanner.zones) >= 1:
+        if len(self.config.scanner.zones) > 0:
             self.config.scanner.zones.pop(self.selected_scan_zone)
-            self.selected_scan_zone = max(0, self.selected_scan_zone)
+            if self.selected_scan_zone >= len(self.config.scanner.zones):
+                self.selected_scan_zone = max(0, self.selected_scan_zone - 1)
             print("SCAN: Deleted the currently selected scan zone")
             self._config_has_changed()
 
@@ -319,26 +341,36 @@ class ControllerWorker(QObject):
         if len(self.config.scanner.zones) == 0:
             self.scan_add_zone()
         zone = self.config.scanner.zones[self.selected_scan_zone]
-        if self.stage.x < zone.BR[0] and self.stage.y < zone.BR[1]:
-            zone.FL = [self.stage.x, self.stage.y, self.stage.z]
-            self.config.update_z_correction_terms(self.selected_scan_zone)
-            print("SCAN: Set front left corner of zone")
-            self._config_has_changed()
+        self.config.scanner.zones[self.selected_scan_zone].FL = [self.stage.x, self.stage.y, self.stage.z]
+        print("SCAN: Set front left corner of zone")
+
+        if self.stage.x >= zone.BR[0] or self.stage.y >= zone.BR[1]:
+            print("Invalid zone settings, updated the Back Right point")
+            self.config.scanner.zones[self.selected_scan_zone].BR = [self.stage.x + 1000, self.stage.y + 1000, self.stage.z + 1000]
+
+        self.update_z_correction_terms(self.selected_scan_zone)
+        self._config_has_changed()
 
     @Slot()
     def scan_set_BR(self):
         if len(self.config.scanner.zones) == 0:
             self.scan_add_zone()
         zone = self.config.scanner.zones[self.selected_scan_zone]
-        if self.stage.x > zone.FL[0] and self.stage.y > zone.FL[1]:
-            zone.BR = [self.stage.x, self.stage.y, self.stage.z]
-            self.config.update_z_correction_terms(self.selected_scan_zone)
-            print("SCAN: Set back right corner zone")
-            self._config_has_changed()
+        self.config.scanner.zones[self.selected_scan_zone].BR = [self.stage.x, self.stage.y, self.stage.z]
+        print("SCAN: Set back right corner zone")
+
+        if self.stage.x <= zone.FL[0] or self.stage.y <= zone.FL[1]:
+            print("Invalid zone settings, updated the Front Left point")
+            self.config.scanner.zones[self.selected_scan_zone].FL = [max(0, self.stage.x - 1000),
+                                                                     max(0, self.stage.y - 1000),
+                                                                     max(0, self.stage.z - 1000)]
+
+        self.update_z_correction_terms(self.selected_scan_zone)
+        self._config_has_changed()
 
     @Slot()
     def scan_set_z_correction(self):
-        self.config.update_z_correction_terms(self.selected_scan_zone,
+        self.update_z_correction_terms(self.selected_scan_zone,
                                               self.stage.z)
         print("SCAN: Updated Z correction terms")
         self._config_has_changed()
@@ -354,3 +386,17 @@ class ControllerWorker(QObject):
         self.config.scanner.stack_step = value
         print("STACK: Set stack step")
         self._config_has_changed()
+
+    def update_z_correction_terms(self, index, blz=None):
+        # supposes the scan surface is flat and non-vertical
+        fl, br = self.config.scanner.zones[index].FL, self.config.scanner.zones[index].BR
+        x, y, z = 0, 1, 2
+
+        if blz is None:
+            blz = (fl[z] + br[z])//2
+        print(fl, br)
+        dz_dx = (blz - fl[z]) / (br[x] - fl[x])
+        dz_dy = (br[z] - blz) / (br[y] - fl[y])
+        self.config.scanner.zones[index].BL_Z = blz
+        self.config.scanner.zones[index].Z_corrections = [dz_dx, dz_dy]
+

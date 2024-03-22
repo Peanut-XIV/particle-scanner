@@ -16,6 +16,7 @@ from sashimi.gui.controller import ControllerWorker
 
 class MainWindow(QMainWindow):
     disable_ctrl_buttons = Signal(bool)
+    request_update = Signal()
     def __init__(self, **kwargs):
         super().__init__()
 
@@ -23,7 +24,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Sashimi Controller Interface")
 
         # Controller
-        self.worker = ControllerWorker(disable_ctrl=self.disable_ctrl_buttons, **kwargs)
+        self.worker = ControllerWorker(self.disable_ctrl_buttons, self.request_update, **kwargs)
         self.thread = QThread()
         self.worker.moveToThread(self.thread)
         self.worker.camera_image_changed.connect(self.update_image)

@@ -1,10 +1,13 @@
 import os.path
 import threading
 from dataclasses import dataclass
+from importlib.resources import files
 from pathlib import Path
 
 import cv2
 from pypylon import pylon
+
+import sashimi.resources
 
 # TODO: look into pylon.ImageFileFormat
 
@@ -136,10 +139,11 @@ class DummyCamera(Camera):
     """
     a dummy camera class for development and testing purposes.
     """
-    def __init__(self, config: CameraConfiguration, im_path):
+    def __init__(self, config: CameraConfiguration):
         super().__init__(config)
         self.exposure = 2000
         self.gain = 20
+        im_path = str(files(sashimi.resources).joinpath("testscreen.png"))
         self.test_screen = get_test_img(im_path)
 
     def start(self):

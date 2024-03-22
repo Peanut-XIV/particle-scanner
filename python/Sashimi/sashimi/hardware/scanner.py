@@ -137,13 +137,13 @@ class Scanner(QObject):
 
         self.disable_ctrl = disable_ctrl
 
-    Slot()
+    @Slot()
     def start(self):
         self.state.start_time = datetime.now()
         self.scan_cancelled = False
         self._transition_to("init")
 
-    Slot()
+    @Slot()
     def cancel(self):
         self.scan_cancelled = True
 
