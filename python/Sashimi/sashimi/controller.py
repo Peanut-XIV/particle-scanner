@@ -23,7 +23,9 @@ class Controller(object):
             auto_f_stack: bool = True,
             auto_quit: bool = False,
             lowest_z: bool = False,
-            do_overwrite: bool = False):
+            do_overwrite: bool = False,
+            horizontal_stack_offset: tuple[int] = (1600, 1260),
+            ):
 
         # saved/default config
         self.config = Configuration.load()
@@ -44,6 +46,7 @@ class Controller(object):
         self.auto_quit = auto_quit
         self.lowest_z = lowest_z
         self.do_overwrite = do_overwrite
+        self.horizontal_stack_offset = horizontal_stack_offset
 
         # parameters an variables
         self.img_mode = 1
