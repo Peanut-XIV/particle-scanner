@@ -7,4 +7,6 @@ venv/
 
 python/Sashimi/sashimi/micro_panorama.py
 python/Sashimi/sashimi/plot_stitching.py
-/python/Sashimi/.idea/
+python/Sashimi/.idea
+python/sashimi/.idea
+/python/Sashimi/.idea
