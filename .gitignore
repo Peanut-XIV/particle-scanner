@@ -3,6 +3,7 @@ venv/
 *.DS_Store
 
 .idea
+/.idea
 /*/__pycache__/
 
 python/Sashimi/sashimi/micro_panorama.py
@@ -10,6 +11,4 @@ python/Sashimi/sashimi/plot_stitching.py
 python/Sashimi/.idea
 python/sashimi/.idea
 /python/Sashimi/.idea
-/.idea
 /python/sashimi/.idea
-/python/sashimi
