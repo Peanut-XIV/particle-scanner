@@ -1,9 +1,18 @@
-import cv2
-import serial
 import time
+from typing import T, overload
+import serial
 
 
-class Stage(object):
+def clamp(val: T, mini: T, maxi: T) -> T:
+    return max(mini, min(val, maxi))
+
+@overload
+def clamp(val: T, bounds: tuple[T, T]) -> T:
+    mini, maxi = bounds
+    return max(mini, min(val, maxi))
+
+
+class Stage:
     def __init__(self, controller, port):
         self.controller = controller
         self.port = port
@@ -59,27 +68,15 @@ class Stage(object):
         time.sleep(sleep_time)
 
     def goto_x(self, position):
-        self.x = position
-        if self.x < self.x_limits[0]:
-            self.x = self.x_limits[0]
-        if self.x > self.x_limits[1]:
-            self.x = self.x_limits[1]
+        self.x = clamp(position, self.x_limits)
         self.send_command(f"G0 X {self.x / 1000:3f} F3000")
 
     def goto_y(self, position):
-        self.y = position
-        if self.y < self.y_limits[0]:
-            self.y = self.y_limits[0]
-        if self.y > self.y_limits[1]:
-            self.y = self.y_limits[1]
+        self.y = clamp(position, self.y_limits)
         self.send_command(f"G0 Y {self.y / 1000:3f} F3000")
 
     def goto_z(self, position):
-        self.z = position
-        if self.z < self.z_limits[0]:
-            self.z = self.z_limits[0]
-        if self.z > self.z_limits[1]:
-            self.z = self.z_limits[1]
+        self.z = clamp(position, self.z_limits)
         self.send_command(f"G0 Z {self.z / 1000:3f} F100")
 
     def goto(self, position):
@@ -106,13 +103,12 @@ class Stage(object):
         # tells the printer to finish it's planned movements before executing any other g-code
         self.send_command('M400')
         self.send_command("M118 Ready")
-        for i in range(ms//self.controller.frame_duration_ms):
+        for _ in range(ms//self.controller.frame_duration_ms):
             self.controller.wait()
             messages = self.read()
             for message in messages:
                 if message.startswith('Ready'):
                     return
-        
         print(f"!!! ERROR: position not attained after {ms}ms ")
 
     def send_command(self, command):

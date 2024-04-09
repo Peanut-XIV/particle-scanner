@@ -14,21 +14,24 @@ class Configuration(object):
                        'BR': [11000, 51000, 2000],
                        'BL_Z': 2000,
                        'Z_corrections':[0, 0]}]
-    
+
     def update_z_correction_terms(self, index, blz=None):
         # supposes the scan surface is flat and non-vertical
         fl, br = self.scans[index]['FL'], self.scans[index]['BR']
         x, y, z = 0, 1, 2
 
-        if br[x] == fl[x] or br[y] == fl[y]:
-            print("brx == flx or bry == fly !!!")
-            return
-
         if blz is None:
             blz = (fl[z] + br[z])//2
-        
-        dz_dx = (blz - fl[z]) / (br[x] - fl[x])
-        dz_dy = (br[z] - blz) / (br[y] - fl[y])
+
+        if br[x] == fl[x]:
+            dz_dx = 0
+        else:
+            dz_dx = (blz - fl[z]) / (br[x] - fl[x])
+
+        if br[y] == fl[y]:
+            dz_dy = 0
+        else:
+            dz_dy = (br[z] - blz) / (br[y] - fl[y])
 
         self.scans[index]['BL_Z'] = blz
         self.scans[index]['Z_corrections'] = [dz_dx, dz_dy]

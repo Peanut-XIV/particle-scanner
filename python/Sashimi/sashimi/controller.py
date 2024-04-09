@@ -209,7 +209,6 @@ class Controller(object):
                                       'BR': [11000, 51000, 2000],
                                       'BL_Z': 2000,
                                       'Z_corrections': [0, 0]})
-
         elif key == kb.DEL_ZONE:  # delete currently selected zone
             if len(self.config.scans) > 1:
                 if self.selected_scan_number == len(self.config.scans):
@@ -227,23 +226,24 @@ class Controller(object):
             self.config.save()
         elif key == kb.SCAN_FL:
             scan = self.selected_scan()
-            if self.stage.x == scan['BR'][0] or self.stage.y == scan['BR'][1]:
-                return
-            self.selected_scan()['FL'] = [self.stage.x,
-                                          self.stage.y,
-                                          self.stage.z]
+            self.selected_scan()['FL'] = [self.stage.x, self.stage.y, self.stage.z]
+            if scan['FL'][0] > scan['BR'][0] or scan['FL'][0] > scan['BR'][1]:
+                self.selected_scan()['FL'] = [min(self.stage.x_limits[1], scan['FL'][0] + 1000),
+                                              min(self.stage.y_limits[1], scan['FL'][1] + 1000),
+                                              scan['FL'][2]]
             self.config.update_z_correction_terms(self.selected_scan_number - 1)
             self.config.save()
         elif key == kb.SCAN_BR:
             scan = self.selected_scan()
-            if self.stage.x == scan['FL'][0] or self.stage.y == scan['FL'][1]:
-                return
             self.selected_scan()['BR'] = [self.stage.x, self.stage.y, self.stage.z]
+            if scan['FL'][0] > scan['BR'][0] or scan['FL'][0] > scan['BR'][1]:
+                self.selected_scan()['FL'] = [max(self.stage.x_limits[0], scan['BR'][0] - 1000),
+                                              max(self.stage.y_limits[0], scan['BR'][1] - 1000),
+                                              scan['BR'][2]]
             self.config.update_z_correction_terms(self.selected_scan_number - 1)
             self.config.save()
         elif key == kb.SET_Z_COR:
-            self.config.update_z_correction_terms(
-                    self.selected_scan_number - 1, self.stage.z)
+            self.config.update_z_correction_terms(self.selected_scan_number - 1, self.stage.z)
             self.config.save()
 
         # Move to scan area

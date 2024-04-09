@@ -71,8 +71,10 @@ class Scanner(object):
         if self.multi_exp:
             self.fs_exp_folders =\
                 [self.fs_folder.joinpath(f"E{exp}") for exp in self.multi_exp]
-        self.X_STEP = self.controller.horizontal_stack_offset[0]
-        self.Y_STEP = self.controller.horizontal_stack_offset[1]
+        self.X_STEP = self.controller.horizontal_stack_offset[0]  # µm
+        self.Y_STEP = self.controller.horizontal_stack_offset[1]  # µm
+        self.image_width = 2100
+        self.image_height = 1760
         self.stack_count = None
         self.current_stack = 0
         self.total_stacks = 0
