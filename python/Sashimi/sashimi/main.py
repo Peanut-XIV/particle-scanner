@@ -11,7 +11,7 @@ if __name__ == "__main__":
                             auto_f_stack=True,
                             lowest_z=True,
                             remove_raw=True,
-                            horizontal_stack_offset=(1600, 1260),
-                            # 500 µm of overlap in both direction
+                            horizontal_stack_offset=(2100 - 500, 1760 - 500),
+                            # an image is 2100 x 1760 µm -> 500 µm of overlap in both direction
                             )
     controller.start()

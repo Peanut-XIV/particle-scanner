@@ -24,7 +24,7 @@ class Controller(object):
             auto_quit: bool = False,
             lowest_z: bool = False,
             do_overwrite: bool = False,
-            horizontal_stack_offset: tuple[int] = (1600, 1260),
+            horizontal_stack_offset: tuple[int, int] = (1600, 1260),
             ):
 
         # saved/default config
