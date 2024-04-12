@@ -3,10 +3,6 @@ from typing import T, overload
 import serial
 
 
-def clamp(val: T, mini: T, maxi: T) -> T:
-    return max(mini, min(val, maxi))
-
-@overload
 def clamp(val: T, bounds: tuple[T, T]) -> T:
     mini, maxi = bounds
     return max(mini, min(val, maxi))
