@@ -384,7 +384,11 @@ class Scanner(object):
                     f"scan{n + 1} started at {dates[n]}, "
                     f"lasted {h}h {m}min {s}s and took :\n"
                     f"{stack_nbr} stacks x {exp_count} exposures x "
-                    f"{self.stack_count} heights = {pic_nbr} pictures.\n\n"
+                    f"{self.stack_count} heights = {pic_nbr} pictures.\n"
+                    f"Here are the zone's coordinates:\n"
+                    f"\tFL={scan[n]['FL']} ; "
+                    f"BR={scan[n]['BR']} ; "
+                    f"BL(z only)={scan[n]['BL_Z']}\n"
                 )
             delta = dates[-1] - dates[0]
             h, m, s = s2hms(int(delta.total_seconds()))
