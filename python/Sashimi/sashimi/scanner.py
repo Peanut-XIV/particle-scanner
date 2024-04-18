@@ -140,8 +140,11 @@ class Scanner(object):
         self.total_pic_count = pps * total_stacks
 
     def step_nbr_xy(self, scan) -> (int, int):
-        x_steps = 1 + (scan['BR'][0] - scan['FL'][0]) // self.X_STEP
-        y_steps = 1 + (scan['BR'][1] - scan['FL'][1]) // self.Y_STEP
+        # values in µm
+        zone_width = scan['BR'][0] - scan['FL'][0] + self.image_width
+        zone_height = scan['BR'][1] - scan['FL'][1] + self.image_height
+        x_steps = 1 + zone_width // self.X_STEP
+        y_steps = 1 + zone_height // self.Y_STEP
         return x_steps, y_steps
 
     def validate_zones(self) -> bool:
