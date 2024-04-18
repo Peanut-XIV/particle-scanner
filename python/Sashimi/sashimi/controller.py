@@ -227,7 +227,7 @@ class Controller(object):
         elif key == kb.SCAN_FL:
             scan = self.selected_scan()
             self.selected_scan()['FL'] = [self.stage.x, self.stage.y, self.stage.z]
-            if scan['FL'][0] > scan['BR'][0] or scan['FL'][0] > scan['BR'][1]:
+            if scan['FL'][0] > scan['BR'][0] or scan['FL'][1] > scan['BR'][1]:
                 self.selected_scan()['FL'] = [min(self.stage.x_limits[1], scan['FL'][0] + 1000),
                                               min(self.stage.y_limits[1], scan['FL'][1] + 1000),
                                               scan['FL'][2]]
@@ -236,7 +236,7 @@ class Controller(object):
         elif key == kb.SCAN_BR:
             scan = self.selected_scan()
             self.selected_scan()['BR'] = [self.stage.x, self.stage.y, self.stage.z]
-            if scan['FL'][0] > scan['BR'][0] or scan['FL'][0] > scan['BR'][1]:
+            if scan['FL'][0] > scan['BR'][0] or scan['FL'][1] > scan['BR'][1]:
                 self.selected_scan()['FL'] = [max(self.stage.x_limits[0], scan['BR'][0] - 1000),
                                               max(self.stage.y_limits[0], scan['BR'][1] - 1000),
                                               scan['BR'][2]]
