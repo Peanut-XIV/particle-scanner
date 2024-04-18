@@ -3,6 +3,7 @@ import multiprocessing as mp
 import skimage.io as skio
 import numpy as np
 import datetime as dt
+from math import ceil
 from shutil import rmtree
 from pathlib import Path
 from sashimi import utils, helicon_stack
@@ -141,10 +142,8 @@ class Scanner(object):
 
     def step_nbr_xy(self, scan) -> (int, int):
         # values in µm
-        zone_width = scan['BR'][0] - scan['FL'][0] + self.image_width
-        zone_height = scan['BR'][1] - scan['FL'][1] + self.image_height
-        x_steps = 1 + zone_width // self.X_STEP
-        y_steps = 1 + zone_height // self.Y_STEP
+        x_steps = 1 + ceil((scan['BR'][0] - scan['FL'][0]) / self.X_STEP)
+        y_steps = 1 + ceil((scan['BR'][1] - scan['FL'][1]) / self.Y_STEP)
         return x_steps, y_steps
 
     def validate_zones(self) -> bool:
