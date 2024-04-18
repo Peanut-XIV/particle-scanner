@@ -155,16 +155,16 @@ class Controller(object):
 
         # Move stage
         elif key == kb.FORWARD:
-            self.stage.move_y(1000)
+            self.stage.move_y(500)
             print("Stage: move y 1mm")
         elif key == kb.BACK:
-            self.stage.move_y(-1000)
+            self.stage.move_y(-500)
             print("Stage: move y -1mm")
         elif key == kb.LEFT:
-            self.stage.move_x(-1000)
+            self.stage.move_x(-500)
             print("Stage: move x -1mm")
         elif key == kb.RIGHT:
-            self.stage.move_x(1000)
+            self.stage.move_x(500)
             print("Stage: move x 1mm")
 
         elif key == kb.X_FORWARD:
