@@ -159,10 +159,10 @@ class ControllerWorker(QObject):
             self.camera_image_changed.emit(display_img)
             # Emit signal with the processed BGR image
 
-            if self.camera.rescale != 1.0:
+            if self.config.camera.rescale != 1.0:
                 img = cv2.resize(frame[0], (0, 0),
-                                 fx=self.camera.rescale,
-                                 fy=self.camera.rescale)
+                                 fx=self.config.camera.rescale,
+                                 fy=self.config.camera.rescale)
                 frame = (img, exposure)
 
         # Scanner
