@@ -144,6 +144,10 @@ class Scanner(QObject):
         self._transition_to("init")
 
     @Slot()
+    def start_dws(self):
+        print("This does nothing yet... \a🔔")
+
+    @Slot()
     def cancel(self):
         self.scan_cancelled = True
 

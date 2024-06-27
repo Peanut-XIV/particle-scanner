@@ -33,6 +33,13 @@ class MovementsWidget(QDockWidget):
         button_size = QSize(50, 50)
 
         start_stop = QHBoxLayout()
+
+        self.dws_button = QPushButton("DWS", container)
+        self.dws_button.setFixedSize(button_size)
+        dws = QVBoxLayout()
+        dws.addWidget(QLabel("Work In Progress:"))
+        dws.addWidget(self.dws_button)
+
         icons = files(sashimi.resources).joinpath("icons")
         self.start_button = QPushButton(container)
         self.start_button.setFixedSize(button_size)
@@ -41,6 +48,7 @@ class MovementsWidget(QDockWidget):
         start = QVBoxLayout()
         start.addWidget(QLabel("Start Scan:", container))
         start.addWidget(self.start_button)
+
         self.stop_button = QPushButton(container)
         self.stop_button.setFixedSize(button_size)
         self.stop_button.setIcon(QIcon(str(icons.joinpath("stop.png"))))
@@ -49,6 +57,8 @@ class MovementsWidget(QDockWidget):
         stop = QVBoxLayout()
         stop.addWidget(QLabel("Stop Scan:", container))
         stop.addWidget(self.stop_button)
+
+        start_stop.addLayout(dws)
         start_stop.addLayout(start)
         start_stop.addLayout(stop)
         layout.addLayout(start_stop)
@@ -128,6 +138,7 @@ class MovementsWidget(QDockWidget):
         slots = [
                 worker.scanner.start,
                 worker.scanner.cancel,
+                worker.scanner.start_dws,
                 worker.stage_move_up,
                 worker.stage_move_down,
                 worker.stage_move_left,
@@ -138,13 +149,13 @@ class MovementsWidget(QDockWidget):
                 worker.stage_home,
         ]
         buttons = self.get_buttons()
-
-        for i in range(len(slots)):
-            buttons[i].clicked.connect(slots[i])
+        for button, slot in zip(buttons, slots):
+            button.clicked.connect(slot)
 
     def get_buttons(self):
         return [self.start_button,
                 self.stop_button,
+                self.dws_button,
                 self.button_up,
                 self.button_down,
                 self.button_left,
