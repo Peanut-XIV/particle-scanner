@@ -82,6 +82,7 @@ class ControllerWorker(QObject):
         # Zones
         self.selected_scan_zone = 0
 
+        # Defines the rate at which self.loop is called
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.loop)
         self.timer.start(30)
@@ -124,7 +125,7 @@ class ControllerWorker(QObject):
     def stop(self):
         self.config.save_default()
         self.camera.stop()
-        self.timer.stop()
+        self.timer.killTimer()
 
     @Slot()
     def loop(self):
@@ -345,7 +346,9 @@ class ControllerWorker(QObject):
 
         if self.stage.x >= zone.BR[0] or self.stage.y >= zone.BR[1]:
             print("Invalid zone settings, updated the Back Right point")
-            self.config.scanner.zones[self.selected_scan_zone].BR = [self.stage.x + 1000, self.stage.y + 1000, self.stage.z + 1000]
+            self.config.scanner.zones[self.selected_scan_zone].BR = [self.stage.x + 1000,
+                                                                     self.stage.y + 1000,
+                                                                     self.stage.z + 1000]
 
         self.update_z_correction_terms(self.selected_scan_zone)
         self._config_has_changed()

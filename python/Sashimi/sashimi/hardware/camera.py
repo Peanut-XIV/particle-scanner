@@ -71,7 +71,7 @@ class CaptureThread(threading.Thread):
             grab_result.Release()
 
 
-class Camera(object):
+class Camera:
     def __init__(self):
         self.pixel_size = 3.45
         self.objective_magnification = 4

@@ -16,6 +16,8 @@ import skimage.io as skio
 import multiprocessing as mp
 
 from PySide6.QtCore import QObject, Signal, QTimer, Slot
+import numpy as np
+import cv2
 
 from sashimi import utils
 from sashimi.configuration.base import BaseModel
@@ -62,6 +64,13 @@ class ScannerState:
     """
     # Global state
     state: str = "idle"
+
+    initial_Z = None
+    Z0 = None
+    Z1 = None
+    S0 = None
+    S1 = None
+    gradient_sign = None
 
     # Wait function
     wait_fn: Optional[callable] = None
@@ -113,6 +122,14 @@ class Scanner(QObject):
         # TODO: implement stack method as a config option
         #       instead of a kwarg passed down from main()
 
+        # DWS debug config
+        self.debug_dws = kwargs.get("debug_dws", False)
+        detector = self.debug_dws("detector") if self.debug_dws else None
+        if detector == "SimpleBlobDetector":
+            self.detector = create_detector(sample_step=4)
+        else:
+            self.detector = None
+
         # State
         self.state = ScannerState()
 
@@ -136,6 +153,8 @@ class Scanner(QObject):
         self.state.step_y = int(self.camera.height * (1 - self.config.overlap_y))
 
         self.disable_ctrl = disable_ctrl
+
+        self.error_logs = None
 
     @Slot()
     def start(self):
@@ -291,9 +310,6 @@ class Scanner(QObject):
             if self.config.exposure_times is None or len(self.config.exposure_times) <= 1:
                 self.config.exposure_times = [self.camera_exposure]
 
-            # Initialise
-            self.state.is_scanning = True
-
             # Create scan, removing existing if necessary
             scan_dir = self._get_scan_path()
             if scan_dir.exists() and self.config.overwrite:
@@ -331,8 +347,8 @@ class Scanner(QObject):
 
             # Get the zone steps etc
             self.state.num_steps_x, self.state.num_steps_y = self._get_steps_xy(zone)
-            self.stack_idx = 0
-            self.num_stacks = self.state.num_steps_x * self.state.num_steps_y * len(self.config.exposure_times)
+            self.state.stack_idx = 0
+            self.state.num_stacks = self.state.num_steps_x * self.state.num_steps_y * len(self.config.exposure_times)
             self.state.stack_x = 0
             self.state.stack_y = 0
             self.state.image_idx = 0
@@ -345,7 +361,7 @@ class Scanner(QObject):
             # If we have finished all the stacks
             if self.state.stack_x >= self.state.num_steps_x and self.state.stack_y >= self.state.num_steps_y:
                 self.state.zone_idx += 1
-                self._transition_to("start_zone")
+                self._transition_to("zone")
                 return
 
             # First exposure
@@ -355,11 +371,84 @@ class Scanner(QObject):
             du, _, _ = self._get_stack_offset()
             print(du)
             self.stage.goto(du, busy=True)
-            self._wait_for_move_then_transition_to("stack_exposure", 10000)
+            if self.detector is not None:
+                self._wait_for_move_then_transition_to("sharpness_initA", 10000)
+            else:
+                self._wait_for_move_then_transition_to("stack_exposure", 10000)
+        # --------------------------------------------------------------------
+        # TODO: Add bounds check to prevent the camera head from coliding with
+        #       the bed (Possible if the sample tray is very thick)
+        elif state == "sharpness_initA":
+            # measure sharpness at current height
+            self.state.initial_Z = self.stage.z
+            self.state.Z0 = self.state.initial_Z
+            self.state.S0 = sharpness(self.camera_img)
+            self.state.Z1 = self.state.Z0 + self.config.stack_step
+            self.stage.goto_z(self.state.Z1)
+            self._wait_for_move_then_transition_to("sharpness_initB", 10000)
+        # --------------------------------------------------------------------
+        elif state == "sharpness_initB":
+            # Compare sharpness between old and new Z
+            self.state.S1 = sharpness(self.camera_img)
+            if self.state.S1 < self.state.S0 :
+                self.state.S1, self.state.S0 = self.state.S0, self.state.S1
+                self.state.Z1, self.state.Z0 = self.state.Z0, self.state.Z1
+                self.state.gradient_sign = -1
+            else:
+                self.state.gradient_sign = 1
+            # move in the direction of the sharpness gradient
+            next_z = self.state.Z1 + self.state.gradient_sign * self.config.stack_step
+            self.stage.goto_z(next_z, True)
+            self._wait_for_move_then_transition_to("sharpness_step", 10000)
+        # --------------------------------------------------------------------
+        elif state == "sharpness_step":
+            val = sharpness(self.camera_img)
+            if val > self.state.S1:
+                # if new point is sharper, keep moving in this direction
+                self.state.Z0 = self.stage.z
+                self.state.Z1 = self.state.Z0 + self.config.stack_step
+                self.state.S0, self.state.S1 = self.state.S1, val
+                self.stage.goto_z(self.state.Z1)
+                self._wait_for_move_then_transition_to("sharpness_step", 10000)
+            else:
+                # otherwise a local maximum was reached
+                # in which case, go to the previous Z,
+                # and start looking for objects of interest
+                print("Local sharpness maximum found")
+                imdir = Path("~/sashimi_test").expanduser()
+                os.makedirs(imdir, exist_ok=True)
+                impath = imdir.joinpath(f"X{self.stage.x:06d}_"
+                                        f"Y{self.stage.y:06d}_"
+                                        f"Z{self.stage.z:06d}.jpg")
+                cv2.imwrite(str(impath), self.camera_img)
+                self.stage.goto_z(self.state.Z1)
+                self._wait_for_move_then_transition_to("sharpness_end", 10000)
+        # --------------------------------------------------------------------
+        elif state == "sharpness_end":
+            n = detect_white_objects(self.camera_img, 3)
+            if n:
+                # if there are objects of interest, take the stack
+                if self.debug_dws["verbose"]:
+                    print(f"{n} OBJECTS DETECTED AT {self.stage.x, self.stage.y}")
+                self._wait_for_move_then_transition_to("stack_exposure", 10_000)
+            else:
+                if self.debug_dws["verbose"]:
+                    print(f"nothing at {self.stage.x, self.stage.y}")
+                # Otherwise, go to the next XY position or Zone
+                self.state.stack_x += 1
+                if self.state.stack_x >= self.state.num_steps_x:
+                    self.state.stack_y += 1
+                    if self.state.stack_y >= self.state.num_steps_y:
+                        self.state.zone_idx += 1
+                        self._wait_for_move_then_transition_to("zone", 10_000)
+                    self.state.stack_x = 0
+                self._wait_for_move_then_transition_to("stack_init", 10_000)
+
+            self.stage.goto_z(self.state.initial_Z)
         # --------------------------------------------------------------------
         elif state == "stack_exposure":
             # All exposures done?
-            if self.state.exposure_idx == self.state.num_exposures:
+            if self.state.exposure_idx == self.state.num_exposures or self.debug_dws["skip_stacks"]:
                 print("STACK: All exposures done")
                 self.state.stack_x += 1
                 if self.state.stack_x >= self.state.num_steps_x:
@@ -420,3 +509,32 @@ class Scanner(QObject):
             self.parallel_process.join()
             self._transition_to("idle")
             return
+
+
+
+
+def sharpness(img) -> int:
+    return np.sum(cv2.Laplacian(img[::4, ::4, ...], -1))
+
+def create_detector(sample_step):
+    params = cv2.SimpleBlobDetector.Params()
+    # Color
+    params.filterByColor = True
+    params.blobColor = 255
+    params.thresholdStep = 8
+    # Area
+    params.filterByArea = True
+    params.minArea = 20 * 20 * pow(sample_step, -2)
+    params.maxArea = 300 * 300 * pow(sample_step, -2)
+    # Circularity
+    params.filterByCircularity = True
+    params.minCircularity = 0.2
+    params.filterByConvexity = True
+    params.minConvexity = 0.3
+    return cv2.SimpleBlobDetector.create(params)
+
+def detect_white_objects(img, sample_step):
+    detector = create_detector(sample_step)
+    down_sample = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)[::sample_step,::sample_step]
+    kp = detector.detect(down_sample)
+    return len(kp)
