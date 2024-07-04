@@ -125,7 +125,7 @@ class ControllerWorker(QObject):
     def stop(self):
         self.config.save_default()
         self.camera.stop()
-        self.timer.killTimer()
+        self.timer.stop()
 
     @Slot()
     def loop(self):

@@ -124,7 +124,7 @@ class Scanner(QObject):
 
         # DWS debug config
         self.debug_dws = kwargs.get("debug_dws", False)
-        detector = self.debug_dws("detector") if self.debug_dws else None
+        detector = self.debug_dws["detector"] if self.debug_dws else None
         if detector == "SimpleBlobDetector":
             self.detector = create_detector(sample_step=4)
         else:
@@ -379,49 +379,58 @@ class Scanner(QObject):
         # TODO: Add bounds check to prevent the camera head from coliding with
         #       the bed (Possible if the sample tray is very thick)
         elif state == "sharpness_initA":
+            print("init sharpness")
             # measure sharpness at current height
             self.state.initial_Z = self.stage.z
             self.state.Z0 = self.state.initial_Z
             self.state.S0 = sharpness(self.camera_img)
+            print("base sharpness =", self.state.S0)
             self.state.Z1 = self.state.Z0 + self.config.stack_step
-            self.stage.goto_z(self.state.Z1)
+            self.stage.goto_z(self.state.Z1, busy=True)
+            print("going from", self.state.Z0,"to", self.state.Z1)
             self._wait_for_move_then_transition_to("sharpness_initB", 10000)
         # --------------------------------------------------------------------
         elif state == "sharpness_initB":
             # Compare sharpness between old and new Z
             self.state.S1 = sharpness(self.camera_img)
+            print("sharpness at z+1 =", self.state.S1)
             if self.state.S1 < self.state.S0 :
+                print("going down")
                 self.state.S1, self.state.S0 = self.state.S0, self.state.S1
                 self.state.Z1, self.state.Z0 = self.state.Z0, self.state.Z1
                 self.state.gradient_sign = -1
             else:
+                print("going up")
                 self.state.gradient_sign = 1
             # move in the direction of the sharpness gradient
             next_z = self.state.Z1 + self.state.gradient_sign * self.config.stack_step
-            self.stage.goto_z(next_z, True)
+            self.stage.goto_z(next_z, busy=True)
+            print("going from", self.state.Z0,"to", self.state.Z1)
             self._wait_for_move_then_transition_to("sharpness_step", 10000)
         # --------------------------------------------------------------------
         elif state == "sharpness_step":
             val = sharpness(self.camera_img)
+            print("new sharpness =", val)
             if val > self.state.S1:
                 # if new point is sharper, keep moving in this direction
                 self.state.Z0 = self.stage.z
                 self.state.Z1 = self.state.Z0 + self.config.stack_step
                 self.state.S0, self.state.S1 = self.state.S1, val
-                self.stage.goto_z(self.state.Z1)
+                print("going from", self.state.Z0,"to", self.state.Z1)
+                self.stage.goto_z(self.state.Z1, busy=True)
                 self._wait_for_move_then_transition_to("sharpness_step", 10000)
             else:
                 # otherwise a local maximum was reached
                 # in which case, go to the previous Z,
                 # and start looking for objects of interest
-                print("Local sharpness maximum found")
+                print("Local sharpness maximum found. Writing img file.")
                 imdir = Path("~/sashimi_test").expanduser()
                 os.makedirs(imdir, exist_ok=True)
                 impath = imdir.joinpath(f"X{self.stage.x:06d}_"
                                         f"Y{self.stage.y:06d}_"
                                         f"Z{self.stage.z:06d}.jpg")
                 cv2.imwrite(str(impath), self.camera_img)
-                self.stage.goto_z(self.state.Z1)
+                self.stage.goto_z(self.state.Z1, busy=True)
                 self._wait_for_move_then_transition_to("sharpness_end", 10000)
         # --------------------------------------------------------------------
         elif state == "sharpness_end":
@@ -444,7 +453,7 @@ class Scanner(QObject):
                     self.state.stack_x = 0
                 self._wait_for_move_then_transition_to("stack_init", 10_000)
 
-            self.stage.goto_z(self.state.initial_Z)
+            self.stage.goto_z(self.state.initial_Z, busy=True)
         # --------------------------------------------------------------------
         elif state == "stack_exposure":
             # All exposures done?
