@@ -125,7 +125,8 @@ class Scanner(object):
         return clip(new_z - self.config.z_margin)
 
     def update_stack_count(self):
-        self.stack_count = self.config.stack_height // self.config.stack_step
+        z_margin = self.config.z_margin or 0  # zero if None
+        self.stack_count = ceil((self.config.stack_height + z_margin) / self.config.stack_step)
 
     def update_total_pic_count(self):
         if self.multi_exp:
