@@ -9,9 +9,11 @@ if __name__ == "__main__":
                             lang="en",
                             layout='AZERTY',
                             auto_f_stack=True,
-                            lowest_z=True,
+                            lowest_z=False,
                             remove_raw=True,
+                            z_margin=300,
                             horizontal_stack_offset=(2100 - 500, 1760 - 500),
                             # an image is 2100 x 1760 µm -> 500 µm of overlap in both direction
                             )
     controller.start()
+    
