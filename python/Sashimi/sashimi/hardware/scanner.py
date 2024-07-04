@@ -423,17 +423,21 @@ class Scanner(QObject):
                 # otherwise a local maximum was reached
                 # in which case, go to the previous Z,
                 # and start looking for objects of interest
-                print("Local sharpness maximum found. Writing img file.")
-                imdir = Path("~/sashimi_test").expanduser()
-                os.makedirs(imdir, exist_ok=True)
-                impath = imdir.joinpath(f"X{self.stage.x:06d}_"
-                                        f"Y{self.stage.y:06d}_"
-                                        f"Z{self.stage.z:06d}.jpg")
-                cv2.imwrite(str(impath), self.camera_img)
-                self.stage.goto_z(self.state.Z1, busy=True)
+                print("Local sharpness maximum found, returning to previous pos.")
+                self.stage.goto_z(
+                    self.state.Z1 - self.state.gradient_sign * self.config.stack_step,
+                    busy=True
+                )
                 self._wait_for_move_then_transition_to("sharpness_end", 10000)
         # --------------------------------------------------------------------
         elif state == "sharpness_end":
+            print("Maximum reached, writing img file.")
+            imdir = Path("~/sashimi_test").expanduser()
+            os.makedirs(imdir, exist_ok=True)
+            impath = imdir.joinpath(f"X{self.stage.x:06d}_"
+                                    f"Y{self.stage.y:06d}_"
+                                    f"Z{self.stage.z:06d}.jpg")
+            cv2.imwrite(str(impath), self.camera_img)
             n = detect_white_objects(self.camera_img, 3)
             if n:
                 # if there are objects of interest, take the stack
