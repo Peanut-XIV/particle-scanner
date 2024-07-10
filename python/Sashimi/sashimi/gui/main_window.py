@@ -1,16 +1,10 @@
 import sys
-from pathlib import Path
 
 from PySide6.QtCore import QThread, Signal, Qt
-from PySide6.QtWidgets import (
-        QApplication, QMainWindow, QPushButton, QVBoxLayout,
-        QLabel, QWidget, QHBoxLayout, QDoubleSpinBox,
-        QSpinBox, QGridLayout, QLayout, QTextEdit
-)
+from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QWidget, QHBoxLayout
 from PySide6.QtGui import QImage, QPixmap
 import numpy as np
 
-from sashimi.configuration.configuration import Configuration
 from sashimi.gui.controller import ControllerWorker
 from sashimi.gui.dock_widgets import CameraSettingsWidget, MovementsWidget, ZonesSettingsWidget
 

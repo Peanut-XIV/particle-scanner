@@ -77,6 +77,8 @@ class ScannerState:
     wait_ticks: Optional[int] = None
     wait_state: Optional[str] = None
 
+    stacks_since_calibration = 0
+
     num_zones: int = 0
     num_exposures: int = 0
     num_stacks: int = 0
@@ -369,8 +371,12 @@ class Scanner(QObject):
 
             # Move to start
             du, _, _ = self._get_stack_offset()
-            print(du)
-            self.stage.goto(du, busy=True)
+            if self.state.stack_y == 0 and self.state.stacks_since_calibration >= 100:
+                self.state.stacks_since_calibration = 0
+                self.stage.home(du, busy=True)
+            else:
+                self.state.stacks_since_calibration += 1
+                self.stage.goto(du, busy=True)
             if self.detector is not None:
                 self._wait_for_move_then_transition_to("sharpness_initA", 10000)
             else:
@@ -421,7 +427,7 @@ class Scanner(QObject):
                 self._wait_for_move_then_transition_to("sharpness_step", 10000)
             else:
                 # otherwise a local maximum was reached
-                # in which case, go to the previous Z,
+                # in which case, go to the previous Z
                 # and start looking for objects of interest
                 print("Local sharpness maximum found, returning to previous pos.")
                 self.stage.goto_z(
