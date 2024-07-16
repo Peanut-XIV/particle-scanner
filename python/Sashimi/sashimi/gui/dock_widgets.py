@@ -1,16 +1,30 @@
 import sys
 from importlib.resources import files
+from enum import IntEnum
 
 from PySide6.QtCore import Qt, Slot, QSize
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
         QApplication, QMainWindow, QPushButton, QVBoxLayout, QLabel, QWidget,
         QGridLayout, QHBoxLayout, QLayout, QDockWidget, QSizePolicy, QSpinBox,
-        QDoubleSpinBox, QListWidget, QTextEdit
+        QDoubleSpinBox, QListWidget, QTextEdit, QCheckBox
 )
 
 import sashimi.resources
 from sashimi.configuration.configuration import Configuration
+
+
+class DirectionalButton(QPushButton):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setAutoRepeat(True)
+        self.setAutoRepeatDelay(800)
+        self.setAutoRepeatInterval(300)
+
+
+class CheckState(IntEnum):
+    OFF = 0
+    ON = 1
 
 
 class MovementsWidget(QDockWidget):
@@ -34,12 +48,6 @@ class MovementsWidget(QDockWidget):
 
         start_stop = QHBoxLayout()
 
-        self.dws_button = QPushButton("DWS", container)
-        self.dws_button.setFixedSize(button_size)
-        dws = QVBoxLayout()
-        dws.addWidget(QLabel("Work In Progress:"))
-        dws.addWidget(self.dws_button)
-
         icons = files(sashimi.resources).joinpath("icons")
         self.start_button = QPushButton(container)
         self.start_button.setFixedSize(button_size)
@@ -58,10 +66,18 @@ class MovementsWidget(QDockWidget):
         stop.addWidget(QLabel("Stop Scan:", container))
         stop.addWidget(self.stop_button)
 
-        start_stop.addLayout(dws)
         start_stop.addLayout(start)
         start_stop.addLayout(stop)
         layout.addLayout(start_stop)
+
+        self.dws_button = QCheckBox("Detect while scanning", container)
+        self.dws_button.setCheckState(Qt.Unchecked)
+        self.recalibrate_button = QCheckBox("calibrate while scanning", container)
+        self.recalibrate_button.setCheckState(Qt.Unchecked)
+        checkboxes = QVBoxLayout()
+        checkboxes.addWidget(self.dws_button)
+        checkboxes.addWidget(self.recalibrate_button)
+        layout.addLayout(checkboxes)
 
         layout.addWidget(QLabel("Stage position:", container))
         position = QHBoxLayout()
@@ -76,8 +92,8 @@ class MovementsWidget(QDockWidget):
         directional = QHBoxLayout() # A layout for all directional controls
         up_down = QVBoxLayout()
         up_down.addStretch(1)
-        self.button_up = QPushButton("UP", container)
-        self.button_down = QPushButton("DOWN", container)
+        self.button_up = DirectionalButton("UP", container)
+        self.button_down = DirectionalButton("DOWN", container)
         self.button_up.setFixedSize(button_size)
         self.button_down.setFixedSize(button_size)
         up_down.addWidget(self.button_up)
@@ -94,7 +110,7 @@ class MovementsWidget(QDockWidget):
                              ("RIGHT", 1, 2)]
         buttons = []
         for name, row, col in button_and_coords:
-            btn = QPushButton(name, container)
+            btn = DirectionalButton(name, container)
             btn.setFixedSize(button_size)
             horizontal.addWidget(btn, row, col)
             buttons.append(btn)
@@ -138,7 +154,6 @@ class MovementsWidget(QDockWidget):
         slots = [
                 worker.scanner.start,
                 worker.scanner.cancel,
-                worker.scanner.start_dws,
                 worker.stage_move_up,
                 worker.stage_move_down,
                 worker.stage_move_left,
@@ -151,11 +166,12 @@ class MovementsWidget(QDockWidget):
         buttons = self.get_buttons()
         for button, slot in zip(buttons, slots):
             button.clicked.connect(slot)
+        self.recalibrate_button.stateChanged.connect(worker.scanner.set_autocalibration)
+        self.dws_button.stateChanged.connect(worker.scanner.set_dws)
 
     def get_buttons(self):
         return [self.start_button,
                 self.stop_button,
-                self.dws_button,
                 self.button_up,
                 self.button_down,
                 self.button_left,

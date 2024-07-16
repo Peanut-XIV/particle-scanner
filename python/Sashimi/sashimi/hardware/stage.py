@@ -98,9 +98,22 @@ class Stage(object):
         self.x = 0
         self.y = 0
         self.z = 0
+        # Z first to reduce the risk of collision
+        self.goto_z(offset[2] + 1000)
         self.move_x(offset[0])
         self.move_y(offset[1])
+        self.goto_z(offset[2])
+        if busy:
+            self.busy()
+
+    def home_XZ(self, offset, busy=False):
+        self.send_command("G28 X Z")
+        self.x = 0
+        self.z = 0
+        # Z first to reduce the risk of collision
         self.goto_z(offset[2] + 1000)
+        self.move_x(offset[0])
+        self.move_y(offset[1])
         self.goto_z(offset[2])
         if busy:
             self.busy()

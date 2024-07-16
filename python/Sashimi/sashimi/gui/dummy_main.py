@@ -4,12 +4,20 @@ if __name__ == "__main__":
     YES = ["y","Y","yes","Yes","YES"]
     dummy_cam = bool(input("dummy_cam ? [y/n] ") in YES)
     dummy_stage = bool(input("dummy_stage ? [y/n] ") in YES)
+
+
     if not (dummy_stage or dummy_cam) :
         debug_dws = {
-                "skip_stacks": True,
-                "detector": "SimpleBlobDetector",
-                "verbose": True
-                }
+                    "skip_stacks": True,
+                    "detector": "SimpleBlobDetector",
+                    "verbose": 2
+                    }
+    else:
+        debug_dws = {
+                    "skip_stacks": False,
+                    "detector": "SimpleBlobDetector",
+                    "verbose": 9
+                    }
     main(
         dummy_camera=dummy_cam,
         dummy_stage=dummy_stage,

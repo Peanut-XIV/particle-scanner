@@ -102,7 +102,7 @@ class ControllerWorker(QObject):
     @Slot()
     def _config_has_changed(self):
         """
-        this method is a slot to allow the main window to update it info
+        this method is a slot to allow the main window to update it's info
         after initializing
         """
         self.config_changed.emit(self.config)
