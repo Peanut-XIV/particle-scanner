@@ -2,14 +2,15 @@ import os
 import shutil
 import sys
 import subprocess
+import traceback
 from pathlib import Path
 from glob import glob
 from typing import Union
+from time import sleep
+
+from sashimi import utils
 
 from PIL import Image
-from time import sleep
-from sashimi import utils
-import traceback
 
 
 def get_helicon_focus():
