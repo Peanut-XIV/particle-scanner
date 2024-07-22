@@ -71,7 +71,11 @@ class MainWindow(QMainWindow):
                 self.disable_ctrl_buttons.connect(button.setEnabled)
             else:
                 self.disable_ctrl_buttons.connect(button.setDisabled)
+        self.disable_ctrl_buttons.connect(widget.recalibrate_button.setDisabled)
+        self.disable_ctrl_buttons.connect(widget.dws_button.setDisabled)
+        self.disable_ctrl_buttons.connect(widget.choose_model_button.setDisabled)
         self.worker.stage_state_changed.connect(widget.update_stage_state)
+        self.worker.model_path_changed.connect(widget.update_model_path)
         return widget
 
     def get_zones_settings_dock(self):

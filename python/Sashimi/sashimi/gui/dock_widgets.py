@@ -1,8 +1,9 @@
 import sys
 from importlib.resources import files
 from enum import IntEnum
+from pathlib import Path
 
-from PySide6.QtCore import Qt, Slot, QSize
+from PySide6.QtCore import Qt, Slot, QSize, Signal
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
         QApplication, QMainWindow, QPushButton, QVBoxLayout, QLabel, QWidget,
@@ -12,6 +13,7 @@ from PySide6.QtWidgets import (
 
 import sashimi.resources
 from sashimi.configuration.configuration import Configuration
+from sashimi.gui.dialogs import CNNDirectoryDialog
 
 
 class DirectionalButton(QPushButton):
@@ -31,6 +33,8 @@ class MovementsWidget(QDockWidget):
     """
     A QDockWidget Class to display the scanner's movement controls
     """
+    user_changed_cnn = Signal(str)
+
     def __init__(self):
         super().__init__()
         self.setAllowedAreas(Qt.AllDockWidgetAreas)
@@ -39,6 +43,9 @@ class MovementsWidget(QDockWidget):
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet("background-color: lightgrey;")
         self.setTitleBarWidget(title)
+
+        # Inner state for the dialog box
+        self.current_cnn_model = str(Path("~").expanduser())
 
         # A container for the content of the Dock QDockWidget
         container = QWidget(self)
@@ -70,14 +77,18 @@ class MovementsWidget(QDockWidget):
         start_stop.addLayout(stop)
         layout.addLayout(start_stop)
 
-        self.dws_button = QCheckBox("Detect while scanning", container)
-        self.dws_button.setCheckState(Qt.Unchecked)
         self.recalibrate_button = QCheckBox("calibrate while scanning", container)
         self.recalibrate_button.setCheckState(Qt.Unchecked)
-        checkboxes = QVBoxLayout()
-        checkboxes.addWidget(self.dws_button)
-        checkboxes.addWidget(self.recalibrate_button)
-        layout.addLayout(checkboxes)
+        self.dws_button = QCheckBox("Detect while scanning", container)
+        self.dws_button.setCheckState(Qt.Unchecked)
+        self.choose_model_button = QPushButton("set CNN model", container)
+        self.current_model_txtbox = QLabel("Current model:\nNot set yet!", container)
+        detection = QVBoxLayout()
+        detection.addWidget(self.recalibrate_button)
+        detection.addWidget(self.dws_button)
+        detection.addWidget(self.choose_model_button)
+        detection.addWidget(self.current_model_txtbox)
+        layout.addLayout(detection)
 
         layout.addWidget(QLabel("Stage position:", container))
         position = QHBoxLayout()
@@ -123,10 +134,10 @@ class MovementsWidget(QDockWidget):
         layout.addLayout(directional)
 
         # Hint
-        hint = QLabel("Press Shift to move faster.", container)
-        hint.setStyleSheet("color: grey; font-style: italic;")
-        hint.setAlignment(Qt.AlignCenter)
-        layout.addWidget(hint)
+        # hint = QLabel("Press Shift to move faster.", container)
+        # hint.setStyleSheet("color: grey; font-style: italic;")
+        # hint.setAlignment(Qt.AlignCenter)
+        # layout.addWidget(hint)
 
         home_buttons = QHBoxLayout()
         self.button_set_home = QPushButton("Set Home", container)
@@ -152,22 +163,24 @@ class MovementsWidget(QDockWidget):
         Signals are bound outside of construction for easier testing
         """
         slots = [
-                worker.scanner.start,
-                worker.scanner.cancel,
-                worker.stage_move_up,
-                worker.stage_move_down,
-                worker.stage_move_left,
-                worker.stage_move_right,
-                worker.stage_move_forward,
-                worker.stage_move_back,
-                worker.stage_set_home,
-                worker.stage_home,
+            worker.scanner.start,
+            worker.scanner.cancel,
+            worker.stage_move_up,
+            worker.stage_move_down,
+            worker.stage_move_left,
+            worker.stage_move_right,
+            worker.stage_move_forward,
+            worker.stage_move_back,
+            worker.stage_set_home,
+            worker.stage_home,
         ]
         buttons = self.get_buttons()
         for button, slot in zip(buttons, slots):
             button.clicked.connect(slot)
         self.recalibrate_button.stateChanged.connect(worker.scanner.set_autocalibration)
         self.dws_button.stateChanged.connect(worker.scanner.set_dws)
+        self.choose_model_button.clicked.connect(self.dialog_model_path)
+        self.user_changed_cnn.connect(worker.scanner.set_current_model_path)
 
     def get_buttons(self):
         return [self.start_button,
@@ -180,6 +193,37 @@ class MovementsWidget(QDockWidget):
                 self.button_backward,
                 self.button_set_home,
                 self.button_go_home]
+
+    @Slot()
+    def dialog_model_path(self):
+        CLEAR = "\033[0m"
+        ORANGE = "\033[33m"
+        dialog_box = CNNDirectoryDialog()
+        new_path = dialog_box.getExistingDirectory(None, caption="New image detection model directory", dir=self.current_cnn_model)
+        elements = [elem.name for elem in Path(new_path).iterdir()]
+        valid_dir = True
+        if "labels.txt" not in elements:
+            print(ORANGE + "WARNING: the given directory is invalid as the file labels.tx is missing" + CLEAR)
+            valid_dir = False
+        if "model.pt" not in elements and "model.pth" not in elements:
+            print(ORANGE + "WARNING: the given directory is invalid as the file model.pt or model.pth is missing" + CLEAR)
+            valid_dir = False
+        if valid_dir:
+            self.user_changed_cnn.emit(new_path)
+            self.current_cnn_model = new_path
+            self.current_model_txtbox.setText(
+                "Current model:\n" + Path(new_path).name)
+
+    @Slot(str)
+    def update_model_path(self, path_str):
+        """
+        Sets the directory from which the model directory selection dialog starts
+        It is necessary after the init of the scanner to update all of the UI data
+        """
+        self.current_cnn_model = path_str
+        self.current_model_txtbox.setText(
+            "Current model:\n" + Path(path_str).name)
+
 
 class CameraSettingsWidget(QDockWidget):
     def __init__(self):
@@ -295,7 +339,6 @@ class ZonesSettingsWidget(QDockWidget):
         hint.setStyleSheet("color: grey; font-style: italic;")
         hint.setAlignment(Qt.AlignCenter)
         layout.addWidget(hint)
-
 
         zone_select = QGridLayout()
         label1 = QLabel("Select Zone:", container)

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum, auto
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -40,6 +41,7 @@ class ControllerWorker(QObject):
     stack_step_changed = Signal(int)
     stack_height_changed = Signal(int)
     zones_changed = Signal(int, Configuration)
+    model_path_changed = Signal(str)
 
     # Extra camera settings
     camera_blue_balance_changed = Signal(float)  # Sign
@@ -120,6 +122,7 @@ class ControllerWorker(QObject):
         self.stack_height_changed.emit(config.scanner.stack_height)
         self.stack_step_changed.emit(config.scanner.stack_height)
         self.zones_changed.emit(self.selected_scan_zone, config)
+        self.model_path_changed.emit(config.scanner.cnn_model_dir)
 
     @Slot()
     def stop(self):

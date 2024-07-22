@@ -73,6 +73,8 @@ class ScannerConfiguration(BaseModel):
 
     remove_raw_images: bool = True
 
+    cnn_model_dir: str = ""
+
 
 @dataclass
 class ScannerState:
@@ -219,6 +221,9 @@ class Scanner(QObject):
         else:
             self.does_autocalibrate = False
 
+    @Slot(str)
+    def set_current_model_path(self, path_str):
+        self.config.cnn_model_dir = path_str
 
     @Slot()
     def cancel(self):
