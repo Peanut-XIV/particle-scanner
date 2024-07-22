@@ -70,7 +70,9 @@ class Detector:
         img.to(device=self.device)
         with torch.inference_mode():
             logits = self.model([img])[0]  # model takes a list of tensors as input. This list is of length one.
-        boxes = logits[0]["boxes"]
+        # The outputs are converted to standard python objects to let them
+        # be picklable
+        boxes = [[float(val) for val in coords] for coords in logits[0]["boxes"]]
         labels = map(self.classes.__getitem__, logits[0]["labels"])
-        scores = logits[0]["scores"]
+        scores = [float(val) for val in logits[0]["scores"]]
         return list(zip(boxes, labels, scores))

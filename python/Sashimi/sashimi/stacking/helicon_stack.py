@@ -5,12 +5,13 @@ import subprocess
 import traceback
 from pathlib import Path
 from glob import glob
-from typing import Union
+from typing import Union, Optional
 from time import sleep
 
 from sashimi import utils
 
 from PIL import Image
+import numpy as np
 
 
 def get_helicon_focus():
@@ -140,9 +141,15 @@ def parallel_stack(queue, error_logs, stack_method="focus_stack", remove_raw=Fal
 
             raw_folder = Path(msg[0])
             image_path = msg[1]
+
+            # the boxes in which objects of iterest were detected
+            if len(msg) > 2:
+                detection_boxes = msg[2]
+            else:
+                detection_boxes = None
             try:
                 if stack_method == "helicon":
-                    stack_with_helicon(raw_folder, image_path)
+                    stack_with_helicon(raw_folder, image_path, detection_boxes)
                 elif stack_method == "focus_stack":
                     stack_with_focus_stack(raw_folder, image_path)
                 else:
@@ -154,7 +161,9 @@ def parallel_stack(queue, error_logs, stack_method="focus_stack", remove_raw=Fal
                 shutil.rmtree(raw_folder)
 
 
-def stack_with_helicon(raw_images_path: Union[str, Path], image_path: Union[str, Path]):
+def stack_with_helicon(raw_images_path: Union[str, Path],
+                       image_path: Union[str, Path],
+                       boxes: Optional[(list[int], str, float)] = None):
     if isinstance(raw_images_path, str):
         raw_images_path = Path(raw_images_path)
     if isinstance(image_path, str):
@@ -166,6 +175,16 @@ def stack_with_helicon(raw_images_path: Union[str, Path], image_path: Union[str,
     subprocess.run(command)
     img = Image.open(tiff_path)
     img.load()
+    if boxes is not None:
+        pixels = np.array(img)
+        for box, label, _ in boxes:
+            x1, y1, x2, y2 = box
+            crop = pixels[y1:y2, x1:x2, :]
+            # save crop to the correct dir
+            crop_name = image_path.stem + f"_[{x1},{x2},{y1},{y2}].png"
+            crop_dir = image_path.parent.parent.joinpath(label or "unknown_label")
+            crop_path = crop_dir.joinpath(crop_name)
+            Image.fromarray(crop).save(crop_path)
     img.save(png_path)
     os.remove(tiff_path)
     return

@@ -18,12 +18,14 @@ import multiprocessing as mp
 from PySide6.QtCore import QObject, Signal, QTimer, Slot, Qt
 import numpy as np
 import cv2
+import torch
 
 from sashimi.utils import Style, remove_folder
 from sashimi.configuration.base import BaseModel
 from sashimi.hardware.camera import Camera
 from sashimi.hardware.stage import Stage
 from sashimi.stacking import helicon_stack
+from sashimi.detection.cnn import Detector
 
 
 class States(IntEnum):
@@ -94,6 +96,8 @@ class ScannerState:
     wide_step = 120  # µm
     is_stack_valid = True
 
+    detection_boxes = []
+
     # Wait function
     wait_fn: Optional[callable] = None
     wait_ticks: Optional[int] = None
@@ -146,14 +150,7 @@ class Scanner(QObject):
         # TODO: implement stack method as a config option
         #       instead of a kwarg passed down from main()
 
-        # DWS debug config
-        self.debug_dws = kwargs["debug_dws"]
-        detector = self.debug_dws["detector"]
-        if detector == "SimpleBlobDetector":
-            self.detector = create_detector(sample_step=4)
-        else:
-            self.detector = None
-
+        self.detector = None
         # State
         self.state = ScannerState()
 
@@ -162,6 +159,7 @@ class Scanner(QObject):
         self.stage = stage
 
         # Used in DWS to find maximum sharpness
+        self.debug_dws = kwargs["debug_dws"]
         self.detect_while_scanning = False
         self.z_min, self.z_max = self.stage.z_limits
 
@@ -315,6 +313,7 @@ class Scanner(QObject):
         y_steps = 1 + (scan.BR[1] - scan.FL[1]) // self.state.step_y
         return x_steps, y_steps
 
+
     def _idle(self):
         """
         One of the behaviors of the scanner's state machine
@@ -363,6 +362,10 @@ class Scanner(QObject):
         self.error_logs = scan_dir / 'error_logs.txt'
         if self.error_logs.exists():
             os.remove(self.error_logs)
+
+        # load the cnn for foram detection while scanning
+        if self.detect_while_scanning:
+            self.detector = Detector(self.config.cnn_model_dir)
 
         # Parallel stack command queue
         self.queue = mp.Queue()
@@ -567,12 +570,21 @@ class Scanner(QObject):
                                 f"Z{self.stage.z:06d}_"
                                 f"S{self.state.prev_sharpness:f}.jpg")
         cv2.imwrite(str(impath), self.camera_img)
-        objects = detect_white_objects(self.camera_img, 3)
+        if isinstance(self.detector, torch.Module):
+            unfiltered = self.detector.detect(self.camera_img)
+            # outputs have the following structure:
+            # list[(coords: Tensor, label: str, score: float)]
+            objects = [obj for obj in unfiltered if obj[2] > 0.5]
+            # TODO: set the threshold as its own setting     ↑↑↑
+        else:
+            objects = detect_white_objects(self.camera_img, 3)
+
 
         if objects:
             # if there are objects of interest, take the stack
             self.log(3, Style.BLU, f"{objects} OBJECTS DETECTED AT"
                                    f" {self.stage.x, self.stage.y}")
+            self.state.detection_boxes = objects
         else:
             self.log(3, Style.BLU, f"nothing at {self.stage.x, self.stage.y}")
             self.state.is_stack_valid = False
@@ -635,7 +647,8 @@ class Scanner(QObject):
             self.queue.put(
                 (
                     str(self._get_raw_path()),
-                    str(self._get_stack_filename(self.stage.x, self.stage.y))
+                    str(self._get_stack_filename(self.stage.x, self.stage.y)),
+                    self.state.detection_boxes
                 )
             )
             self.state.image_idx += 1
