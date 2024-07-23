@@ -146,7 +146,7 @@ class Scanner(QObject):
         super().__init__()
         # Configuration
         self.config = config
-        self.stack_method = kwargs["stack_method"]
+        self.stack_method = "helicon"
         # TODO: implement stack method as a config option
         #       instead of a kwarg passed down from main()
 
@@ -159,7 +159,7 @@ class Scanner(QObject):
         self.stage = stage
 
         # Used in DWS to find maximum sharpness
-        self.debug_dws = kwargs["debug_dws"]
+        self.verbosity = 9
         self.detect_while_scanning = False
         self.z_min, self.z_max = self.stage.z_limits
 
@@ -186,7 +186,7 @@ class Scanner(QObject):
         self.error_logs = None
 
     def log(self, log_lvl: int, color, text):
-        if self.debug_dws and self.debug_dws["verbose"] >= log_lvl:
+        if self.verbosity >= log_lvl:
             print(color + text + Style.CLR)
 
     def is_out_of_bounds(self, position, log_error=True):
@@ -596,9 +596,7 @@ class Scanner(QObject):
         One of the behaviors of the scanner's state machine
         """
         # All exposures done?
-        if (self.state.exposure_idx == self.state.num_exposures
-                or self.debug_dws["skip_stacks"]
-                or not self.state.is_stack_valid):
+        if (self.state.exposure_idx == self.state.num_exposures or not self.state.is_stack_valid):
             print("STACK: All exposures done")
             self.state.stack_x += 1
             if self.state.stack_x >= self.state.num_steps_x:
