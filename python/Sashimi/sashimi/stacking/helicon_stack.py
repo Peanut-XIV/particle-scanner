@@ -7,11 +7,39 @@ from pathlib import Path
 from glob import glob
 from typing import Union, Optional
 from time import sleep
+from typing import Optional
 
 from sashimi import utils
 
 from PIL import Image
 import numpy as np
+
+
+def clip(x, a: float | int | list[float | int] | tuple[float |int], b: Optional[float, int] = None) -> float | int:
+    if b is None:
+        if not isinstance(a, (list, tuple)):
+            mini = 0
+            maxi = a
+        else:
+            if len(a) != 2:
+                raise ValueError(f"argument `a` is not of length 2: {a}")
+            mini = a[0]
+            maxi = a[1]
+    else:
+        mini = a
+        maxi = b
+    return min(max(x, mini), maxi)
+
+
+def crop_picture(img, box):
+    y_max, x_max, _ = img.shape
+    x1, x2, y1, y2 = box
+    x1 = clip(x1, 0, x_max)
+    x2 = clip(x2, 0, x_max)
+    y1 = clip(y1, 0, y_max)
+    y2 = clip(y2, 0, y_max)
+    crop = img[y1:y2, x1:x2, :]
+    return crop
 
 
 def get_helicon_focus():
@@ -178,8 +206,7 @@ def stack_with_helicon(raw_images_path: Union[str, Path],
     if boxes is not None:
         pixels = np.array(img)
         for box, label, _ in boxes:
-            x1, y1, x2, y2 = box
-            crop = pixels[y1:y2, x1:x2, :]
+            crop = crop_picture(pixels, box)
             # save crop to the correct dir
             crop_name = image_path.stem + f"_[{x1},{x2},{y1},{y2}].png"
             crop_dir = image_path.parent.parent.joinpath(label or "unknown_label")
