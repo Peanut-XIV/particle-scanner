@@ -150,7 +150,6 @@ class Scanner(QObject):
         # TODO: implement stack method as a config option
         #       instead of a kwarg passed down from main()
 
-        self.detector = None
         # State
         self.state = ScannerState()
 
@@ -158,9 +157,13 @@ class Scanner(QObject):
         self.camera = camera
         self.stage = stage
 
-        # Used in DWS to find maximum sharpness
         self.verbosity = 9
+
+        # Used in Detection While Scanning
+        self.detector = None
         self.detect_while_scanning = False
+        self.save_detection_frames = False
+        self.skip_stacks = False
         self.z_min, self.z_max = self.stage.z_limits
 
         # Autocalibration
@@ -218,6 +221,20 @@ class Scanner(QObject):
             self.does_autocalibrate = True
         else:
             self.does_autocalibrate = False
+
+    @Slot(int)
+    def set_skip_stack(self, new_state):
+        if new_state == Qt.CheckState.Checked.value:
+            self.skip_stacks = True
+        else:
+            self.skip_stacks = False
+
+    @Slot(int)
+    def set_save_detection_frames(self, new_state):
+        if new_state == Qt.CheckState.Checked.value:
+            self.save_detection_frames = True
+        else:
+            self.save_detection_frames = False
 
     @Slot(str)
     def set_current_model_path(self, path_str):
@@ -515,6 +532,7 @@ class Scanner(QObject):
             self.log(4, Style.GRN, "Next state = sharpness STEP")
             self.stage.goto_z(next_pos, busy=True)
             self._wait_for_move_then_transition_to(States.SHARPNESS_STEP, 10000)
+
     def _sharpness_step(self):
         """
         One of the behaviors of the scanner's state machine.
@@ -542,12 +560,12 @@ class Scanner(QObject):
 
         next_pos = self.state.cur_pos + self.state.direction * self.config.stack_step
         if self.is_out_of_bounds(next_pos):
-            # Bad Ending: No, we can't find istate.t :(
+            # Bad Ending: No, we can't find the maximum :(
             self.state.is_stack_valid = False
             self.log(4, Style.CYAN, "Next state = sharpness END")
             self._transition_to(States.SHARPNESS_END)
             return
-        # Neutral Ending: No, but keep searching
+        # Neutral Ending: No, but let's keep searching
         self.stage.goto_z(next_pos, busy=True)
         self._wait_for_move_then_transition_to(States.SHARPNESS_STEP, 10_000)
 
@@ -556,24 +574,21 @@ class Scanner(QObject):
         One of the behaviors of the scanner's state machine
         """
         # skip invalid stack
+        self.log(3, Style.BLU, "Maximum reached, writing img file.")
+        if self.save_detection_frames:
+            imdir = self._get_scan_path / "detection_frames"
+            os.makedirs(imdir, exist_ok=True)
+            impath = imdir.joinpath(f"X{self.stage.x:06d}_"
+                                    f"Y{self.stage.y:06d}_"
+                                    f"Z{self.stage.z:06d}_"
+                                    f"S{self.state.prev_sharpness:f}.jpg")
+            cv2.imwrite(str(impath), self.camera_img)
         if not self.state.is_stack_valid:
             # transition directly to stack_exposure
             self._transition_to(States.STACK_EXPOSURE)
             return
-
-        self.log(3, Style.BLU, "Maximum reached, writing img file.")
-        datetime_string = self.state.start_time.strftime("%y%m%d%_%H%M%S")
-        imdir = Path(f"~/sashimi_test/{datetime_string}").expanduser()
-        os.makedirs(imdir, exist_ok=True)
-        impath = imdir.joinpath(f"X{self.stage.x:06d}_"
-                                f"Y{self.stage.y:06d}_"
-                                f"Z{self.stage.z:06d}_"
-                                f"S{self.state.prev_sharpness:f}.jpg")
-        cv2.imwrite(str(impath), self.camera_img)
         if isinstance(self.detector, torch.Module):
             unfiltered = self.detector.detect(self.camera_img)
-            # outputs have the following structure:
-            # list[(coords: Tensor, label: str, score: float)]
             objects = [obj for obj in unfiltered if obj[2] > 0.5]
             # TODO: set the threshold as its own setting     ↑↑↑
         else:
@@ -595,9 +610,10 @@ class Scanner(QObject):
         """
         One of the behaviors of the scanner's state machine
         """
-        # All exposures done?
-        if (self.state.exposure_idx == self.state.num_exposures or not self.state.is_stack_valid):
-            print("STACK: All exposures done")
+        # All exposures done? (or need to skip the stack ?)
+        skip = self.skip_stacks or not self.state.is_stack_valid
+        if skip or self.state.exposure_idx == self.state.num_exposures:
+            print("STACK: Skipped" if skip else "STACK: All exposures done")
             self.state.stack_x += 1
             if self.state.stack_x >= self.state.num_steps_x:
                 self.state.stack_y += 1

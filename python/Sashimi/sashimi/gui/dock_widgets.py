@@ -77,19 +77,6 @@ class MovementsWidget(QDockWidget):
         start_stop.addLayout(stop)
         layout.addLayout(start_stop)
 
-        self.recalibrate_button = QCheckBox("calibrate while scanning", container)
-        self.recalibrate_button.setCheckState(Qt.Unchecked)
-        self.dws_button = QCheckBox("Detect while scanning", container)
-        self.dws_button.setCheckState(Qt.Unchecked)
-        self.choose_model_button = QPushButton("set CNN model", container)
-        self.current_model_txtbox = QLabel("Current model:\nNot set yet!", container)
-        detection = QVBoxLayout()
-        detection.addWidget(self.recalibrate_button)
-        detection.addWidget(self.dws_button)
-        detection.addWidget(self.choose_model_button)
-        detection.addWidget(self.current_model_txtbox)
-        layout.addLayout(detection)
-
         layout.addWidget(QLabel("Stage position:", container))
         position = QHBoxLayout()
         self.x_label = QLabel("X:", container)
@@ -144,7 +131,28 @@ class MovementsWidget(QDockWidget):
         self.button_go_home = QPushButton("Go Home", container)
         home_buttons.addWidget(self.button_set_home)
         home_buttons.addWidget(self.button_go_home)
+
         layout.addLayout(home_buttons)
+        detection = QVBoxLayout()
+        self.recalibrate_button = QCheckBox("calibrate while scanning", container)
+        self.recalibrate_button.setCheckState(Qt.Unchecked)
+        self.dws_button = QCheckBox("Detect while scanning", container)
+        self.dws_button.setCheckState(Qt.Unchecked)
+        self.skip_stacks_button = QCheckBox("Skip all stacks", container)
+        self.save_detection_frame_button = QCheckBox("Save detection frames", container)
+        self.skip_stacks_button.setCheckState(Qt.Unchecked)
+        self.save_detection_frame_button.setCheckState(Qt.Unchecked)
+        detection.addWidget(self.recalibrate_button)
+        detection.addWidget(self.dws_button)
+        detection.addWidget(self.skip_stacks_button)
+        detection.addWidget(self.save_detection_frame_button)
+        model_layout = QHBoxLayout()
+        self.choose_model_button = QPushButton("set CNN model", container)
+        self.current_model_txtbox = QLabel("Current model: None", container)
+        model_layout.addWidget(self.current_model_txtbox)
+        model_layout.addWidget(self.choose_model_button)
+        detection.addLayout(model_layout)
+        layout.addLayout(detection)
 
         layout.addStretch(1)
         container.setLayout(layout)
@@ -179,6 +187,8 @@ class MovementsWidget(QDockWidget):
             button.clicked.connect(slot)
         self.recalibrate_button.stateChanged.connect(worker.scanner.set_autocalibration)
         self.dws_button.stateChanged.connect(worker.scanner.set_dws)
+        self.skip_stacks_button.stateChanged.connect(worker.scanner.set_skip_stack)
+        self.save_detection_frame_button.stateChanged.connect(worker.scanner.set_save_detection_frames)
         self.choose_model_button.clicked.connect(self.dialog_model_path)
         self.user_changed_cnn.connect(worker.scanner.set_current_model_path)
 
@@ -200,6 +210,7 @@ class MovementsWidget(QDockWidget):
         ORANGE = "\033[33m"
         dialog_box = CNNDirectoryDialog()
         new_path = dialog_box.getExistingDirectory(None, caption="New image detection model directory", dir=self.current_cnn_model)
+        print(f"new path is \"{new_path}\" ({type(new_path)})")
         elements = [elem.name for elem in Path(new_path).iterdir()]
         valid_dir = True
         if "labels.txt" not in elements:
