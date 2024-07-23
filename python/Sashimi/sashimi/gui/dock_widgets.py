@@ -203,7 +203,7 @@ class MovementsWidget(QDockWidget):
         elements = [elem.name for elem in Path(new_path).iterdir()]
         valid_dir = True
         if "labels.txt" not in elements:
-            print(ORANGE + "WARNING: the given directory is invalid as the file labels.tx is missing" + CLEAR)
+            print(ORANGE + "WARNING: the given directory is invalid as the file labels.txt is missing" + CLEAR)
             valid_dir = False
         if "model.pt" not in elements and "model.pth" not in elements:
             print(ORANGE + "WARNING: the given directory is invalid as the file model.pt or model.pth is missing" + CLEAR)
