@@ -9,7 +9,7 @@ if __name__ == "__main__":
                             lang="en",
                             layout='AZERTY',
                             auto_f_stack=True,
-                            lowest_z=False,
+                            lowest_z=True,
                             remove_raw=True,
                             z_margin=300,
                             horizontal_stack_offset=(2100 - 500, 1760 - 500),
