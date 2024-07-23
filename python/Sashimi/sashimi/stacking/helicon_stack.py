@@ -7,7 +7,7 @@ from pathlib import Path
 from glob import glob
 from typing import Union, Optional
 from time import sleep
-from typing import Optional
+from typing import Optional, Iterable
 
 from sashimi import utils
 
@@ -15,7 +15,7 @@ from PIL import Image
 import numpy as np
 
 
-def clip(x, a: float | int | list[float | int] | tuple[float |int], b: Optional[float, int] = None) -> float | int:
+def clip(x, a: float | int | list[float | int] | tuple[float | int], b: None | float | int = None) -> float | int:
     if b is None:
         if not isinstance(a, (list, tuple)):
             mini = 0
@@ -191,7 +191,7 @@ def parallel_stack(queue, error_logs, stack_method="focus_stack", remove_raw=Fal
 
 def stack_with_helicon(raw_images_path: Union[str, Path],
                        image_path: Union[str, Path],
-                       boxes: Optional[(list[int], str, float)] = None):
+                       boxes: list[list[int], str, float] | None = None):
     if isinstance(raw_images_path, str):
         raw_images_path = Path(raw_images_path)
     if isinstance(image_path, str):
