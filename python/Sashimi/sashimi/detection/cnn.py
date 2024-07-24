@@ -22,6 +22,8 @@ def labels_from_file(path: Path) -> list[str]:
     return output
 
 def load_model(model_dir: Path, device) -> torch.nn.Module:
+    if not isinstance(model_dir, Path):
+        model_dir = Path(model_dir)
     if not model_dir.exists():
         raise NotADirectoryError(f"{str(model_dir)} does not exist")
     model_path_candidates = list(model_dir.glob("*.pt")) + list(model_dir.glob("*.pth"))
@@ -37,9 +39,9 @@ def load_model(model_dir: Path, device) -> torch.nn.Module:
 class Detector:
     def __init__(self, model_dir: Path, device: str = "cpu"):
         self.device = torch.device(device)
-        self.model_dir = model_dir
-        self.model = load_model(model_dir, self.device)
-        labels_path = model_dir.joinpath("labels.txt")
+        self.model_dir = Path(model_dir)
+        self.model = load_model(self.model_dir, self.device)
+        labels_path = self.model_dir.joinpath("labels.txt")
         self.classes: list[str] = labels_from_file(labels_path)
 
     def _convert_img(self, ndarray, from_bgr: bool) -> Tensor:
@@ -64,7 +66,7 @@ class Detector:
         img = torch.transpose(img, 2, 0)
         return img
 
-    def detect(self, img, from_bgr=False) -> list[Tensor, str, float]:
+    def detect(self, img, from_bgr=False) -> list[list, str, float]:
         # convert the image to a shape that torch can handle
         img = self._convert_img(img, from_bgr)
         img.to(device=self.device)
@@ -72,7 +74,7 @@ class Detector:
             logits = self.model([img])[0]  # model takes a list of tensors as input. This list is of length one.
         # The outputs are converted to standard python objects to let them
         # be picklable
-        boxes = [[float(val) for val in coords] for coords in logits[0]["boxes"]]
-        labels = map(self.classes.__getitem__, logits[0]["labels"])
-        scores = [float(val) for val in logits[0]["scores"]]
+        boxes = [[float(val) for val in coords] for coords in logits["boxes"]]
+        labels = map(self.classes.__getitem__, logits["labels"])
+        scores = [float(val) for val in logits["scores"]]
         return list(zip(boxes, labels, scores))

@@ -576,7 +576,7 @@ class Scanner(QObject):
         # skip invalid stack
         self.log(3, Style.BLU, "Maximum reached, writing img file.")
         if self.save_detection_frames:
-            imdir = self._get_scan_path / "detection_frames"
+            imdir = self._get_scan_path() / "detection_frames"
             os.makedirs(imdir, exist_ok=True)
             impath = imdir.joinpath(f"X{self.stage.x:06d}_"
                                     f"Y{self.stage.y:06d}_"
@@ -587,7 +587,7 @@ class Scanner(QObject):
             # transition directly to stack_exposure
             self._transition_to(States.STACK_EXPOSURE)
             return
-        if isinstance(self.detector, torch.Module):
+        if isinstance(self.detector, Detector):
             unfiltered = self.detector.detect(self.camera_img)
             objects = [obj for obj in unfiltered if obj[2] > 0.5]
             # TODO: set the threshold as its own setting     ↑↑↑
@@ -597,7 +597,7 @@ class Scanner(QObject):
 
         if objects:
             # if there are objects of interest, take the stack
-            self.log(3, Style.BLU, f"{objects} OBJECTS DETECTED AT"
+            self.log(3, Style.BLU, f"{len(objects)} OBJECTS DETECTED AT"
                                    f" {self.stage.x, self.stage.y}")
             self.state.detection_boxes = objects
         else:
@@ -656,7 +656,7 @@ class Scanner(QObject):
         skio.imsave(str(save_path), self.camera_img[..., ::-1], check_contrast=False, quality=90)
         self.state.focus_idx += 1
         # Stack done?
-        print(self.state.focus_idx, self.state.num_focus, self.state.image_idx, self.state.num_exposures)
+        # print(self.state.focus_idx, self.state.num_focus, self.state.image_idx, self.state.num_exposures)
         if self.state.focus_idx > self.state.num_focus:
             self.queue.put(
                 (
@@ -672,7 +672,7 @@ class Scanner(QObject):
         # Move and take next
         else:
             self.stage.move_z(self.config.stack_step, busy=True)
-            self._wait_for_move_then_transition_to(States.STACK_IMAGE, 100)
+            self._wait_for_move_then_transition_to(States.STACK_IMAGE, 1000)
 
     def _done(self):
         """
@@ -686,7 +686,9 @@ class Scanner(QObject):
     def loop(self, frame):
         # If cancelled, goto done
         if self.scan_cancelled:
+            print("\033[31m===============CANCELED===============\033[0m\n")
             self._transition_to(States.DONE)
+            self.scan_cancelled = False
         # The current state
         state = self.state.state
         # Get image every loop

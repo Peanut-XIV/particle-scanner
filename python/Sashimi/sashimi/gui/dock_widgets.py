@@ -20,13 +20,8 @@ class DirectionalButton(QPushButton):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setAutoRepeat(True)
-        self.setAutoRepeatDelay(800)
-        self.setAutoRepeatInterval(300)
-
-
-class CheckState(IntEnum):
-    OFF = 0
-    ON = 1
+        self.setAutoRepeatDelay(500)
+        self.setAutoRepeatInterval(150)
 
 
 class MovementsWidget(QDockWidget):

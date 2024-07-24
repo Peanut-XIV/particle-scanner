@@ -120,7 +120,7 @@ class ControllerWorker(QObject):
         self.camera_exposure_changed.emit(config.camera.exposure_time)
         self.camera_gain_changed.emit(config.camera.gain)
         self.stack_height_changed.emit(config.scanner.stack_height)
-        self.stack_step_changed.emit(config.scanner.stack_height)
+        self.stack_step_changed.emit(config.scanner.stack_step)
         self.zones_changed.emit(self.selected_scan_zone, config)
         self.model_path_changed.emit(config.scanner.cnn_model_dir)
 
@@ -380,17 +380,17 @@ class ControllerWorker(QObject):
         print("SCAN: Updated Z correction terms")
         self._config_has_changed()
 
-    @Slot()
+    @Slot(int)
     def stack_set_height(self, value):
         self.config.scanner.stack_height = value
         print("STACK: Set stack height")
-        self._config_has_changed()
+        # self._config_has_changed()
 
-    @Slot()
+    @Slot(int)
     def stack_set_step(self, value):
         self.config.scanner.stack_step = value
-        print("STACK: Set stack step")
-        self._config_has_changed()
+        print(f"STACK: Set stack step -> {value}")
+        # self._config_has_changed()
 
     def update_z_correction_terms(self, index, blz=None):
         # supposes the scan surface is flat and non-vertical
@@ -405,25 +405,25 @@ class ControllerWorker(QObject):
         self.config.scanner.zones[index].BL_Z = blz
         self.config.scanner.zones[index].Z_corrections = [dz_dx, dz_dy]
 
-    @Slot()
+    @Slot(int)
     def stack_set_overlap_x(self, value):
         self.config.scanner.overlap_x = value / 100
         print("STACK: Set overlap X")
         self._config_has_changed()
 
-    @Slot()
+    @Slot(int)
     def stack_set_overlap_y(self, value):
         self.config.scanner.overlap_y = value / 100
         print("STACK: Set overlap Y")
         self._config_has_changed()
 
-    @Slot()
+    @Slot(str)
     def scan_set_name(self, name):
         self.config.scanner.scan_name = name
         print("SCAN: Set name")
         self._config_has_changed()
 
-    @Slot()
+    @Slot(str)
     def scan_set_save_dir(self, path):
         self.config.scanner.save_dir = path
         print("SCAN: Set save dir")
