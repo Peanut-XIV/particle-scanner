@@ -208,7 +208,8 @@ def stack_with_helicon(raw_images_path: Union[str, Path],
         for box, label, _ in boxes:
             crop = crop_picture(pixels, box)
             # save crop to the correct dir
-            crop_name = image_path.stem + f"_[{x1},{x2},{y1},{y2}].png"
+            x1, x2, y1, y2 = box
+            crop_name = image_path.stem + f"_{x1}_{x2}_{y1}_{y2}.png"
             crop_dir = image_path.parent.parent.joinpath(label or "unknown_label")
             crop_path = crop_dir.joinpath(crop_name)
             Image.fromarray(crop).save(crop_path)
